@@ -111,18 +111,36 @@
                     >
                         Farbe
                     </label>
-                    <div class="flex gap-2">
-                        <input
-                            id="cat-color"
-                            type="color"
-                            bind:value={color}
-                            class="h-10 w-20 rounded cursor-pointer"
-                        />
-                        <input
-                            type="text"
-                            bind:value={color}
-                            class="flex-1 rounded-lg border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white"
-                        />
+                    <div class="space-y-3">
+                        <div class="flex flex-wrap gap-2">
+                            {#each ["#ef4444", "#f97316", "#f59e0b", "#84cc16", "#22c55e", "#10b981", "#14b8a6", "#06b6d4", "#0ea5e9", "#3b82f6", "#6366f1", "#8b5cf6", "#a855f7", "#d946ef", "#ec4899", "#f43f5e", "#64748b", "#71717a"] as preset}
+                                <button
+                                    type="button"
+                                    class="w-6 h-6 rounded-full border-2 transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                    class:border-zinc-300={color !== preset}
+                                    class:dark:border-zinc-600={color !==
+                                        preset}
+                                    class:border-zinc-900={color === preset}
+                                    class:dark:border-white={color === preset}
+                                    class:scale-110={color === preset}
+                                    style="background-color: {preset}"
+                                    onclick={() => (color = preset)}
+                                ></button>
+                            {/each}
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div
+                                class="w-10 h-10 rounded-lg border border-zinc-200 dark:border-zinc-700"
+                                style="background-color: {color}"
+                            ></div>
+                            <input
+                                type="text"
+                                bind:value={color}
+                                placeholder="#000000"
+                                class="flex-1 rounded-lg border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white uppercase"
+                                maxlength="7"
+                            />
+                        </div>
                     </div>
                 </div>
 

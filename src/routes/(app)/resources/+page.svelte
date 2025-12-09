@@ -204,15 +204,38 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {#each resources as resource}
                 {@const attrs = resource.attributes}
+                {@const category = categories.find(
+                    (c) => c.id === attrs["category-id"],
+                )}
                 <div
                     class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 relative group transition-all hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-600"
                 >
                     <div class="flex items-start justify-between mb-4">
-                        <div
-                            class="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400"
-                        >
-                            <Ship class="w-6 h-6" />
-                        </div>
+                        {#if category}
+                            <div
+                                class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-medium transition-colors"
+                                style="background-color: {category.attributes
+                                    .color}15; color: {category.attributes
+                                    .color};"
+                            >
+                                {#if category.attributes.icon && (Icons as any)[category.attributes.icon]}
+                                    <svelte:component
+                                        this={(Icons as any)[
+                                            category.attributes.icon
+                                        ]}
+                                        class="w-4 h-4"
+                                    />
+                                {/if}
+                                {category.attributes.title}
+                            </div>
+                        {:else}
+                            <div
+                                class="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400"
+                            >
+                                <Ship class="w-6 h-6" />
+                            </div>
+                        {/if}
+
                         {#if todoCounts[resource.id]}
                             <div
                                 class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full shadow-md z-10 border-2 border-white dark:border-zinc-800"
@@ -287,29 +310,6 @@
                     >
                         {attrs.description || "Keine Beschreibung angegeben."}
                     </p>
-
-                    {#if attrs["category-id"]}
-                        {@const category = categories.find(
-                            (c) => c.id === attrs["category-id"],
-                        )}
-                        {#if category}
-                            <div
-                                class="mb-4 inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-medium bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200"
-                                style="border-left: 3px solid {category
-                                    .attributes.color}"
-                            >
-                                {#if category.attributes.icon && (Icons as any)[category.attributes.icon]}
-                                    <svelte:component
-                                        this={(Icons as any)[
-                                            category.attributes.icon
-                                        ]}
-                                        class="w-3 h-3"
-                                    />
-                                {/if}
-                                {category.attributes.title}
-                            </div>
-                        {/if}
-                    {/if}
 
                     <!-- Desktop Todo List -->
                     <div class="hidden lg:block mb-4 space-y-1">
