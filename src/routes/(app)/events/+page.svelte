@@ -428,7 +428,7 @@
             <label
                 for="title"
                 class="block text-sm font-medium text-zinc-900 dark:text-white"
-                >Title</label
+                >Titel</label
             >
             <input
                 type="text"
@@ -444,7 +444,7 @@
                 <label
                     for="date"
                     class="block text-sm font-medium text-zinc-900 dark:text-white"
-                    >Date</label
+                    >Datum</label
                 >
                 <input
                     type="date"
@@ -458,7 +458,7 @@
                 <label
                     for="startTime"
                     class="block text-sm font-medium text-zinc-900 dark:text-white"
-                    >Time</label
+                    >Zeitraum</label
                 >
                 <div class="flex gap-2">
                     <input
@@ -482,7 +482,7 @@
                 <label
                     for="resource"
                     class="block text-sm font-medium text-zinc-900 dark:text-white"
-                    >Resource</label
+                    >Coachboat</label
                 >
                 <select
                     id="resource"
@@ -504,7 +504,7 @@
                 onclick={() => (showCreateModal = false)}
                 class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-md hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-300 dark:border-zinc-600 dark:hover:bg-zinc-600"
             >
-                Cancel
+                Abbrechen
             </button>
             <button
                 type="submit"
@@ -537,7 +537,7 @@
                 <div class="bg-zinc-50 dark:bg-zinc-700/50 p-3 rounded-lg">
                     <span
                         class="block text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase"
-                        >Time</span
+                        >Zeitraum</span
                     >
                     <span class="text-zinc-900 dark:text-white">
                         {formatSeconds(selectedEvent.attributes["start-date"])} -
@@ -547,13 +547,13 @@
                 <div class="bg-zinc-50 dark:bg-zinc-700/50 p-3 rounded-lg">
                     <span
                         class="block text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase"
-                        >Resource</span
+                        >Coachboat</span
                     >
                     <span class="text-zinc-900 dark:text-white">
                         {#if selectedResource}
                             {selectedResource.attributes.title}
                         {:else}
-                            Loading...
+                            Lade...
                         {/if}
                     </span>
                 </div>
@@ -562,7 +562,7 @@
             <div>
                 <span
                     class="block text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase mb-1"
-                    >Created By</span
+                    >Erstellt von</span
                 >
                 <span
                     class="text-zinc-900 dark:text-white bg-zinc-50 dark:bg-zinc-700/50 px-3 py-2 rounded-lg block"
@@ -571,7 +571,7 @@
                         {selectedUser.attributes["first-name"]}
                         {selectedUser.attributes.name}
                     {:else}
-                        Unknown
+                        Unbekannt
                     {/if}
                 </span>
             </div>
@@ -582,14 +582,14 @@
                         onclick={handleEdit}
                         class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700"
                     >
-                        Edit
+                        Bearbeiten
                     </button>
                 {/if}
                 <button
                     onclick={() => (showDetailModal = false)}
                     class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-md hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-300 dark:border-zinc-600 dark:hover:bg-zinc-600"
                 >
-                    Close
+                    Schließen
                 </button>
             </div>
         </div>
