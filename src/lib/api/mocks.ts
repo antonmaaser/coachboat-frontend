@@ -106,7 +106,28 @@ export async function handleMockRequest(url: string, options: RequestInit): Prom
         }
         const userId = path.split('/users/')[1];
         if (userId) {
-            const user = mockUsers.find(u => u.id === userId);
+            const userIndex = mockUsers.findIndex(u => u.id === userId);
+            const user = mockUsers[userIndex];
+
+            if (options.method === 'PATCH') {
+                if (!user) {
+                    return new Response(JSON.stringify({ errors: [{ status: '404', title: 'Not Found' }] }), { status: 404 });
+                }
+                const body = JSON.parse(options.body as string);
+                const updates = body.data?.attributes || {};
+
+                // Merge updates
+                const updatedUser = {
+                    ...user,
+                    attributes: { ...user.attributes, ...updates }
+                };
+
+                // In a real mock with persistence we'd save this back to mockUsers
+                // mockUsers[userIndex] = updatedUser; 
+
+                return new Response(JSON.stringify({ data: updatedUser }), { status: 200 });
+            }
+
             return user
                 ? new Response(JSON.stringify({ data: user }), { status: 200 })
                 : new Response(JSON.stringify({ errors: [{ status: '404', title: 'Not Found' }] }), { status: 404 });

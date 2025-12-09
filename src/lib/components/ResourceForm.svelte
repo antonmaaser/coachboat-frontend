@@ -64,7 +64,7 @@
         <label
             for="title"
             class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1"
-            >Title</label
+            >Titel</label
         >
         <input
             type="text"
@@ -80,7 +80,7 @@
         <label
             for="description"
             class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1"
-            >Description</label
+            >Beschreibung</label
         >
         <textarea
             id="description"
@@ -99,7 +99,7 @@
                 class="rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
             />
             <span class="text-sm font-medium text-zinc-700 dark:text-zinc-300"
-                >Ready for use</span
+                >Material verfügbar</span
             >
         </label>
     </div>
@@ -112,9 +112,11 @@
         >
             {#if loading}
                 <Loader2 class="w-4 h-4 animate-spin mr-2" />
-                Saving...
+                Speichern...
             {:else}
-                {resource ? "Update Resource" : "Create Resource"}
+                {resource
+                    ? "Material aktualisieren"
+                    : "Neues Material erstellen"}
             {/if}
         </button>
     </div>
