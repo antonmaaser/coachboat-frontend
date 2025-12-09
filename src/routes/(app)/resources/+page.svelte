@@ -17,10 +17,14 @@
         ListTodo,
         AlertTriangle,
     } from "lucide-svelte";
+    import * as Icons from "lucide-svelte";
     import { onMount } from "svelte";
+
+    import { resourceCategoryApi } from "$lib/api/resource-categories";
 
     let resources = $state<any[]>([]);
     let todos = $state<any[]>([]);
+    let categories = $state<any[]>([]);
     let loading = $state(true);
     let showModal = $state(false);
     let editingResource = $state<any>(undefined);
@@ -45,9 +49,10 @@
     async function loadResources() {
         loading = true;
         try {
-            const [resResources, resTodos] = await Promise.all([
+            const [resResources, resTodos, resCategories] = await Promise.all([
                 resourceApi.list(),
                 todoApi.list(),
+                resourceCategoryApi.list(),
             ]);
 
             if (resResources.ok) {
@@ -58,6 +63,11 @@
             if (resTodos.ok) {
                 const json = await resTodos.json();
                 todos = json.data || json;
+            }
+
+            if (resCategories.ok) {
+                const json = await resCategories.json();
+                categories = json.data || json;
             }
         } catch (e) {
             console.error(e);
@@ -277,6 +287,29 @@
                     >
                         {attrs.description || "Keine Beschreibung angegeben."}
                     </p>
+
+                    {#if attrs["category-id"]}
+                        {@const category = categories.find(
+                            (c) => c.id === attrs["category-id"],
+                        )}
+                        {#if category}
+                            <div
+                                class="mb-4 inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-medium bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200"
+                                style="border-left: 3px solid {category
+                                    .attributes.color}"
+                            >
+                                {#if category.attributes.icon && (Icons as any)[category.attributes.icon]}
+                                    <svelte:component
+                                        this={(Icons as any)[
+                                            category.attributes.icon
+                                        ]}
+                                        class="w-3 h-3"
+                                    />
+                                {/if}
+                                {category.attributes.title}
+                            </div>
+                        {/if}
+                    {/if}
 
                     <!-- Desktop Todo List -->
                     <div class="hidden lg:block mb-4 space-y-1">

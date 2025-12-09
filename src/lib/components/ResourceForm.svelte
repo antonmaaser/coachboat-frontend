@@ -1,6 +1,8 @@
 <script lang="ts">
     import { resourceApi, type ResourceAttributes } from "$lib/api/resources";
+    import { resourceCategoryApi } from "$lib/api/resource-categories";
     import { Loader2 } from "lucide-svelte";
+    import { onMount } from "svelte";
 
     let { resource = undefined, onSuccess } = $props<{
         resource?: { id: string; attributes: ResourceAttributes };
@@ -10,11 +12,30 @@
     let title = $state("");
     let description = $state("");
     let isReady = $state(false);
+    let categoryId = $state<string>("");
+
+    let categories = $state<any[]>([]);
+    let categoriesLoading = $state(true);
 
     $effect(() => {
         title = resource?.attributes.title || "";
         description = resource?.attributes.description || "";
         isReady = resource?.attributes["is-ready"] || false;
+        categoryId = resource?.attributes["category-id"] || "";
+    });
+
+    onMount(async () => {
+        try {
+            const res = await resourceCategoryApi.list();
+            if (res.ok) {
+                const json = await res.json();
+                categories = json.data || json;
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            categoriesLoading = false;
+        }
     });
 
     let loading = $state(false);
@@ -30,6 +51,7 @@
                 title,
                 description,
                 "is-ready": isReady,
+                "category-id": categoryId || null,
             };
 
             let res;
@@ -80,6 +102,24 @@
             class="w-full rounded-lg border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
             placeholder="e.g. Coach Boat 1"
         />
+    </div>
+
+    <div>
+        <label
+            for="category"
+            class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1"
+            >Kategorie</label
+        >
+        <select
+            id="category"
+            bind:value={categoryId}
+            class="w-full rounded-lg border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
+        >
+            <option value="">Keine Kategorie</option>
+            {#each categories as cat}
+                <option value={cat.id}>{cat.attributes.title}</option>
+            {/each}
+        </select>
     </div>
 
     <div>

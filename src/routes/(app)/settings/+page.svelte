@@ -2,6 +2,7 @@
     import { userApi } from "$lib/api/users";
     import { auth } from "$lib/stores/auth";
     import { Loader2, CheckCircle2, AlertCircle } from "lucide-svelte";
+    import ResourceCategories from "$lib/components/ResourceCategories.svelte";
 
     let oldPassword = $state("");
     let newPassword = $state("");
@@ -9,6 +10,8 @@
     let loading = $state(false);
     let success = $state(false);
     let error = $state("");
+
+    let isAdmin = $derived($auth.user?.status && $auth.user.status >= 3);
 
     async function handleSubmit(e: Event) {
         e.preventDefault();
@@ -27,10 +30,6 @@
 
         loading = true;
         try {
-            // Assuming we don't strictly need old password if already logged in for this simple implementation,
-            // or API might verify it if sent. But `update` typically is admin or self action.
-            // If API requires old password verification for security, we'd need to adjust API or flow.
-            // For now, standard update.
             const res = await userApi.update($auth.user!.id, {
                 password: newPassword,
             });
@@ -62,6 +61,14 @@
         </h1>
     </div>
 
+    {#if isAdmin}
+        <div
+            class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 max-w-2xl"
+        >
+            <ResourceCategories />
+        </div>
+    {/if}
+
     <div
         class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 max-w-2xl"
     >
@@ -87,18 +94,6 @@
                     {error}
                 </div>
             {/if}
-
-            <!-- Optional: If API supports verifying old password first
-            <div>
-                <label for="oldPassword" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Aktuelles Passwort</label>
-                <input
-                    type="password"
-                    id="oldPassword"
-                    bind:value={oldPassword}
-                    class="w-full rounded-lg border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
-                />
-            </div>
-             -->
 
             <div>
                 <label

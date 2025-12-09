@@ -5,6 +5,7 @@ export interface ResourceAttributes {
     description?: string;
     'is-ready'?: boolean;
     'is-hidden'?: boolean;
+    'category-id'?: string | null;
 }
 
 export const resourceApi = {

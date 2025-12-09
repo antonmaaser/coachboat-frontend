@@ -44,7 +44,8 @@ export const mockResources = [
             title: 'Single Scull A',
             description: 'Top tier racing boat',
             'is-ready': true,
-            'is-hidden': false
+            'is-hidden': false,
+            'category-id': '1'
         }
     },
     {
@@ -54,7 +55,29 @@ export const mockResources = [
             title: 'Double Scull B',
             description: 'Training boat',
             'is-ready': false,
-            'is-hidden': false
+            'is-hidden': false,
+            'category-id': '2'
+        }
+    }
+];
+
+export const mockResourceCategories = [
+    {
+        id: '1',
+        type: 'resource-categories',
+        attributes: {
+            title: 'Motorboote',
+            color: '#3b82f6', // blue-500
+            icon: 'Ship'
+        }
+    },
+    {
+        id: '2',
+        type: 'resource-categories',
+        attributes: {
+            title: 'Ruderboote',
+            color: '#ef4444', // red-500
+            icon: 'Anchor'
         }
     }
 ];
@@ -146,6 +169,68 @@ export async function handleMockRequest(url: string, options: RequestInit): Prom
     if (path.startsWith('/resources')) {
         if (!options.method || options.method === 'GET') {
             return new Response(JSON.stringify({ data: mockResources }), { status: 200 });
+        }
+        const resourceId = path.split('/resources/')[1];
+        if (resourceId && options.method === 'DELETE') {
+            const idx = mockResources.findIndex(r => r.id === resourceId);
+            if (idx !== -1) mockResources.splice(idx, 1);
+            return new Response(null, { status: 204 });
+        }
+        if (options.method === 'POST') {
+            const body = JSON.parse(options.body as string);
+            const newRes = {
+                id: String(Date.now()),
+                type: 'resources',
+                attributes: body.data.attributes
+            };
+            mockResources.push(newRes);
+            return new Response(JSON.stringify({ data: newRes }), { status: 201 });
+        }
+        if (resourceId && options.method === 'PATCH') {
+            const idx = mockResources.findIndex(r => r.id === resourceId);
+            if (idx !== -1) {
+                const body = JSON.parse(options.body as string);
+                mockResources[idx].attributes = { ...mockResources[idx].attributes, ...body.data.attributes };
+                return new Response(JSON.stringify({ data: mockResources[idx] }), { status: 200 });
+            }
+        }
+    }
+
+    // Resource Categories
+    if (path.startsWith('/resource-categories')) {
+        if (!options.method || options.method === 'GET') {
+            return new Response(JSON.stringify({ data: mockResourceCategories }), { status: 200 });
+        }
+        if (options.method === 'POST') {
+            const body = JSON.parse(options.body as string);
+            const newCat = {
+                id: String(Date.now()),
+                type: 'resource-categories',
+                attributes: body.data.attributes
+            };
+            mockResourceCategories.push(newCat);
+            return new Response(JSON.stringify({ data: newCat }), { status: 201 });
+        }
+        const catId = path.split('/resource-categories/')[1];
+        if (catId) {
+            const idx = mockResourceCategories.findIndex(c => c.id === catId);
+            if (idx !== -1) {
+                if (options.method === 'DELETE') {
+                    mockResourceCategories.splice(idx, 1);
+                    // Set resources with this category to null
+                    mockResources.forEach(r => {
+                        if (r.attributes['category-id'] === catId) {
+                            r.attributes['category-id'] = null as any;
+                        }
+                    });
+                    return new Response(null, { status: 204 });
+                }
+                if (options.method === 'PATCH') {
+                    const body = JSON.parse(options.body as string);
+                    mockResourceCategories[idx].attributes = { ...mockResourceCategories[idx].attributes, ...body.data.attributes };
+                    return new Response(JSON.stringify({ data: mockResourceCategories[idx] }), { status: 200 });
+                }
+            }
         }
     }
 
