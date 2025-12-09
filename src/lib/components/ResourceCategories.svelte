@@ -62,7 +62,7 @@
 <div class="space-y-4">
     <div class="flex items-center justify-between">
         <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">
-            Ressourcen-Kategorien
+            Material-Kategorien
         </h3>
         <button
             onclick={openCreate}
