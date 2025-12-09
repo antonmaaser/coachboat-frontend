@@ -7,9 +7,15 @@
         onSuccess: () => void;
     }>();
 
-    let title = $state(resource?.attributes.title || "");
-    let description = $state(resource?.attributes.description || "");
-    let isReady = $state(resource?.attributes["is-ready"] || false);
+    let title = $state("");
+    let description = $state("");
+    let isReady = $state(false);
+
+    $effect(() => {
+        title = resource?.attributes.title || "";
+        description = resource?.attributes.description || "";
+        isReady = resource?.attributes["is-ready"] || false;
+    });
 
     let loading = $state(false);
     let error = $state("");
