@@ -56,6 +56,7 @@
                             id: tokenData.user_id,
                             email: attrs.email,
                             name: attrs.name,
+                            firstName: attrs["first-name"] || attrs.firstName,
                             status: attrs.status,
                         },
                     }));

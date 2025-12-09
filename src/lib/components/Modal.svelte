@@ -19,7 +19,7 @@
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <dialog
     bind:this={dialog}
-    class="backdrop:bg-zinc-900/50 backdrop:backdrop-blur-sm bg-transparent p-0 w-full max-w-lg rounded-xl shadow-2xl transition-all open:animate-in open:fade-in open:zoom-in-95 open:slide-in-from-bottom-2"
+    class="m-auto backdrop:bg-zinc-900/50 backdrop:backdrop-blur-sm bg-transparent p-0 w-full max-w-lg rounded-xl shadow-2xl transition-all open:animate-in open:fade-in open:zoom-in-95 open:slide-in-from-bottom-2"
     onclose={close}
     onclick={(e) => {
         if (e.target === dialog) close();

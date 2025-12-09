@@ -1,2 +1,2 @@
-export const API_BASE = 'https://api.coachboat-planer.de';
-export const AUTH_BASE = 'https://auth.coachboat-planer.de';
+export const API_BASE = '/api';
+export const AUTH_BASE = '/auth';

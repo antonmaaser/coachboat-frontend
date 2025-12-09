@@ -61,7 +61,17 @@ export async function client(endpoint: string, options: RequestOptions = {}) {
     // OR we just allow passing full URL.
     // Let's assume 'endpoint' is relative to API_BASE unless specified.
 
-    let url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
+    // Determine base URL (Auth endpoints go to AUTH_BASE, others API_BASE)
+    // Constants are relative paths (proxied).
+    // If endpoint starts with http, use it as is.
+    // If endpoint starts with AUTH_BASE, use it as is (relative to root).
+    // Otherwise, prepend API_BASE.
+    let url = endpoint;
+    if (!endpoint.startsWith('http')) {
+        if (!endpoint.startsWith(AUTH_BASE)) {
+            url = `${API_BASE}${endpoint}`;
+        }
+    }
 
     if (params) {
         const query = new URLSearchParams(params).toString();
@@ -69,7 +79,12 @@ export async function client(endpoint: string, options: RequestOptions = {}) {
     }
 
     const headers = new Headers(init.headers);
-    headers.set('Content-Type', 'application/json');
+    if (!headers.has('Content-Type')) {
+        headers.set('Content-Type', 'application/vnd.api+json');
+    }
+    if (!headers.has('Accept')) {
+        headers.set('Accept', 'application/vnd.api+json');
+    }
 
     const state = get(auth);
     if (!skipAuth && state.accessToken) {

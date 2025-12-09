@@ -3,8 +3,8 @@ import { client } from './client';
 export interface EventAttributes {
     title: string;
     date: string; // YYYY-MM-DD
-    'start-date': string; // ISO
-    'end-date': string; // ISO
+    'start-date': number; // Seconds from midnight
+    'end-date': number; // Seconds from midnight
     resource?: string;
     description?: string;
 }

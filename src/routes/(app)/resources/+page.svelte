@@ -1,19 +1,42 @@
 <script lang="ts">
     import { resourceApi } from "$lib/api/resources";
     import { auth } from "$lib/stores/auth";
+    import Modal from "$lib/components/Modal.svelte";
+    import ResourceForm from "$lib/components/ResourceForm.svelte";
     import {
         Ship,
         Plus,
         MoreVertical,
         CheckCircle2,
         XCircle,
+        Pencil,
+        Trash2,
     } from "lucide-svelte";
     import { onMount } from "svelte";
 
     let resources = $state<any[]>([]);
     let loading = $state(true);
+    let showModal = $state(false);
+    let editingResource = $state<any>(undefined);
+    let activeMenuId = $state<string | null>(null);
 
-    onMount(async () => {
+    async function handleDelete(resource: any) {
+        if (!confirm("Are you sure you want to delete this resource?")) return;
+        try {
+            const res = await resourceApi.delete(resource.id);
+            if (res.ok) {
+                loadResources();
+            } else {
+                alert("Failed to delete resource");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error deleting resource");
+        }
+    }
+
+    async function loadResources() {
+        loading = true;
         try {
             const res = await resourceApi.list();
             if (res.ok) {
@@ -25,6 +48,25 @@
         } finally {
             loading = false;
         }
+    }
+
+    function openCreateModal() {
+        editingResource = undefined;
+        showModal = true;
+    }
+
+    function openEditModal(resource: any) {
+        editingResource = resource;
+        showModal = true;
+    }
+
+    function handleSuccess() {
+        showModal = false;
+        loadResources();
+    }
+
+    onMount(() => {
+        loadResources();
     });
 
     let isAdmin = $derived($auth.user?.status && $auth.user.status >= 3);
@@ -38,7 +80,7 @@
 
         {#if isAdmin}
             <button
-                onclick={() => alert("Create Resource feature coming soon!")}
+                onclick={openCreateModal}
                 class="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-blue-600/20"
             >
                 <Plus class="w-5 h-5" />
@@ -46,6 +88,16 @@
             </button>
         {/if}
     </div>
+
+    {#if activeMenuId}
+        <!-- Backdrop to close menu -->
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div
+            class="fixed inset-0 z-10"
+            onclick={() => (activeMenuId = null)}
+        ></div>
+    {/if}
 
     {#if loading}
         <div class="flex w-full justify-center p-12">
@@ -79,13 +131,45 @@
                             <Ship class="w-6 h-6" />
                         </div>
                         {#if isAdmin}
-                            <button
-                                onclick={() =>
-                                    alert("Edit feature coming soon!")}
-                                class="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-                            >
-                                <MoreVertical class="w-5 h-5" />
-                            </button>
+                            <div class="relative z-20">
+                                <button
+                                    onclick={() =>
+                                        (activeMenuId =
+                                            activeMenuId === resource.id
+                                                ? null
+                                                : resource.id)}
+                                    class="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                                >
+                                    <MoreVertical class="w-5 h-5" />
+                                </button>
+
+                                {#if activeMenuId === resource.id}
+                                    <div
+                                        class="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-800 rounded-lg shadow-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden transform origin-top-right transition-all"
+                                    >
+                                        <button
+                                            onclick={() => {
+                                                openEditModal(resource);
+                                                activeMenuId = null;
+                                            }}
+                                            class="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2"
+                                        >
+                                            <Pencil class="w-4 h-4" />
+                                            Edit
+                                        </button>
+                                        <button
+                                            onclick={() => {
+                                                handleDelete(resource);
+                                                activeMenuId = null;
+                                            }}
+                                            class="w-full text-left px-4 py-3 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm text-red-600 dark:text-red-400 flex items-center gap-2 border-t border-zinc-100 dark:border-zinc-700"
+                                        >
+                                            <Trash2 class="w-4 h-4" />
+                                            Delete
+                                        </button>
+                                    </div>
+                                {/if}
+                            </div>
                         {/if}
                     </div>
 
@@ -121,4 +205,16 @@
             {/each}
         </div>
     {/if}
+
+    <Modal
+        bind:show={showModal}
+        title={editingResource ? "Edit Resource" : "New Resource"}
+    >
+        {#key editingResource?.id || "new"}
+            <ResourceForm
+                resource={editingResource}
+                onSuccess={handleSuccess}
+            />
+        {/key}
+    </Modal>
 </div>
