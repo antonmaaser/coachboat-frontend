@@ -15,12 +15,50 @@
         Pencil,
         Trash2,
         KeyRound,
+        ArrowUp,
+        ArrowDown,
     } from "lucide-svelte";
     import { onMount } from "svelte";
     import { generatePassword } from "$lib/utils";
 
     let users = $state<any[]>([]);
     let loading = $state(true);
+
+    // Sorting state
+    let sortField = $state("name"); // 'name', 'email', 'status'
+    let sortDirection = $state<"asc" | "desc">("asc");
+
+    let sortedUsers = $derived.by(() => {
+        return [...users].sort((a, b) => {
+            let valA, valB;
+
+            if (sortField === "name") {
+                valA =
+                    `${a.attributes["first-name"]} ${a.attributes.name}`.toLowerCase();
+                valB =
+                    `${b.attributes["first-name"]} ${b.attributes.name}`.toLowerCase();
+            } else if (sortField === "email") {
+                valA = a.attributes.email.toLowerCase();
+                valB = b.attributes.email.toLowerCase();
+            } else if (sortField === "status") {
+                valA = a.attributes.status;
+                valB = b.attributes.status;
+            }
+
+            if (valA < valB) return sortDirection === "asc" ? -1 : 1;
+            if (valA > valB) return sortDirection === "asc" ? 1 : -1;
+            return 0;
+        });
+    });
+
+    function toggleSort(field: string) {
+        if (sortField === field) {
+            sortDirection = sortDirection === "asc" ? "desc" : "asc";
+        } else {
+            sortField = field;
+            sortDirection = "asc";
+        }
+    }
     let showModal = $state(false);
     let editingUser = $state<any>(undefined);
     let activeMenu = $state<string | null>(null);
@@ -156,9 +194,51 @@
                     class="bg-zinc-50 dark:bg-zinc-900/50 text-zinc-500 dark:text-zinc-400 font-medium border-b border-zinc-200 dark:border-zinc-700"
                 >
                     <tr>
-                        <th class="px-6 py-4">User</th>
-                        <th class="px-6 py-4">Email</th>
-                        <th class="px-6 py-4">Status</th>
+                        <th class="px-6 py-4">
+                            <button
+                                onclick={() => toggleSort("name")}
+                                class="flex items-center gap-1 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
+                            >
+                                User
+                                {#if sortField === "name"}
+                                    {#if sortDirection === "asc"}
+                                        <ArrowUp class="w-4 h-4" />
+                                    {:else}
+                                        <ArrowDown class="w-4 h-4" />
+                                    {/if}
+                                {/if}
+                            </button>
+                        </th>
+                        <th class="px-6 py-4">
+                            <button
+                                onclick={() => toggleSort("email")}
+                                class="flex items-center gap-1 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
+                            >
+                                Email
+                                {#if sortField === "email"}
+                                    {#if sortDirection === "asc"}
+                                        <ArrowUp class="w-4 h-4" />
+                                    {:else}
+                                        <ArrowDown class="w-4 h-4" />
+                                    {/if}
+                                {/if}
+                            </button>
+                        </th>
+                        <th class="px-6 py-4">
+                            <button
+                                onclick={() => toggleSort("status")}
+                                class="flex items-center gap-1 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
+                            >
+                                Status
+                                {#if sortField === "status"}
+                                    {#if sortDirection === "asc"}
+                                        <ArrowUp class="w-4 h-4" />
+                                    {:else}
+                                        <ArrowDown class="w-4 h-4" />
+                                    {/if}
+                                {/if}
+                            </button>
+                        </th>
                         <th class="px-6 py-4 text-right">Actions</th>
                     </tr>
                 </thead>
@@ -178,7 +258,7 @@
                             ></tr
                         >
                     {:else}
-                        {#each users as user}
+                        {#each sortedUsers as user}
                             {@const attrs = user.attributes}
                             {@const badge = getStatusBadge(attrs.status)}
                             <tr
