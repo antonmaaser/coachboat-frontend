@@ -13,6 +13,7 @@ node_modules
 Thumbs.db
 
 # Env
+/.agent
 
 # Vite
 vite.config.js.timestamp-*
