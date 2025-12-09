@@ -40,7 +40,7 @@
 {/if}
 
 <aside
-    class="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-zinc-800 border-r border-zinc-200 dark:border-zinc-700 transition-transform duration-300 ease-in-out md:translate-x-0
+    class="fixed inset-y-0 left-0 z-50 w-full md:w-64 bg-white dark:bg-zinc-800 border-r border-zinc-200 dark:border-zinc-700 transition-transform duration-300 ease-in-out md:translate-x-0 flex flex-col
     {isOpen ? 'translate-x-0' : '-translate-x-full'}"
 >
     <div

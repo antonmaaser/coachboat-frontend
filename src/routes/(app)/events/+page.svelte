@@ -430,7 +430,7 @@
         <div
             class="grid grid-cols-7 border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50"
         >
-            {#each ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as day}
+            {#each ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"] as day}
                 <div
                     class="py-3 text-center text-sm font-semibold text-zinc-500 dark:text-zinc-400"
                 >
