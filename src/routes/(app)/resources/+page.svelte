@@ -1,8 +1,11 @@
 <script lang="ts">
     import { resourceApi } from "$lib/api/resources";
+    import { todoApi } from "$lib/api/todos";
     import { auth } from "$lib/stores/auth";
     import Modal from "$lib/components/Modal.svelte";
     import ResourceForm from "$lib/components/ResourceForm.svelte";
+    import TodoList from "$lib/components/TodoList.svelte";
+
     import {
         Ship,
         Plus,
@@ -11,14 +14,18 @@
         XCircle,
         Pencil,
         Trash2,
+        ListTodo,
+        AlertTriangle,
     } from "lucide-svelte";
     import { onMount } from "svelte";
 
     let resources = $state<any[]>([]);
+    let todos = $state<any[]>([]);
     let loading = $state(true);
     let showModal = $state(false);
     let editingResource = $state<any>(undefined);
     let activeMenuId = $state<string | null>(null);
+    let viewingTodosFor = $state<any>(undefined);
 
     async function handleDelete(resource: any) {
         if (!confirm("Are you sure you want to delete this resource?")) return;
@@ -38,10 +45,19 @@
     async function loadResources() {
         loading = true;
         try {
-            const res = await resourceApi.list();
-            if (res.ok) {
-                const json = await res.json();
+            const [resResources, resTodos] = await Promise.all([
+                resourceApi.list(),
+                todoApi.list(),
+            ]);
+
+            if (resResources.ok) {
+                const json = await resResources.json();
                 resources = json.data || json;
+            }
+
+            if (resTodos.ok) {
+                const json = await resTodos.json();
+                todos = json.data || json;
             }
         } catch (e) {
             console.error(e);
@@ -70,6 +86,63 @@
     });
 
     let isAdmin = $derived($auth.user?.status && $auth.user.status >= 3);
+
+    // Calculate open todo counts per resource
+    let todoCounts = $derived.by(() => {
+        const counts: Record<string, number> = {};
+        for (const todo of todos) {
+            if (
+                todo.attributes.status === 0 &&
+                todo.attributes["resource-id"]
+            ) {
+                const rid = String(todo.attributes["resource-id"]);
+                counts[rid] = (counts[rid] || 0) + 1;
+            }
+        }
+        return counts;
+    });
+
+    async function toggleTodoStatus(todo: any, e: MouseEvent) {
+        e.stopPropagation();
+        const originalStatus = todo.attributes.status;
+        const newStatus = originalStatus === 1 ? 0 : 1;
+
+        todos = todos.map((t) =>
+            t.id === todo.id
+                ? { ...t, attributes: { ...t.attributes, status: newStatus } }
+                : t,
+        );
+
+        try {
+            const res = await todoApi.update(todo.id, { status: newStatus });
+            if (!res.ok) {
+                todos = todos.map((t) =>
+                    t.id === todo.id
+                        ? {
+                              ...t,
+                              attributes: {
+                                  ...t.attributes,
+                                  status: originalStatus,
+                              },
+                          }
+                        : t,
+                );
+            }
+        } catch (e) {
+            console.error("Failed to update status", e);
+            todos = todos.map((t) =>
+                t.id === todo.id
+                    ? {
+                          ...t,
+                          attributes: {
+                              ...t.attributes,
+                              status: originalStatus,
+                          },
+                      }
+                    : t,
+            );
+        }
+    }
 </script>
 
 <div class="space-y-6">
@@ -130,7 +203,14 @@
                         >
                             <Ship class="w-6 h-6" />
                         </div>
-                        {#if isAdmin}
+                        {#if todoCounts[resource.id]}
+                            <div
+                                class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full shadow-md z-10 border-2 border-white dark:border-zinc-800"
+                            >
+                                {todoCounts[resource.id]}
+                            </div>
+                        {/if}
+                        {#if $auth.user?.status && $auth.user.status >= 1}
                             <div class="relative z-20">
                                 <button
                                     onclick={() =>
@@ -147,25 +227,39 @@
                                     <div
                                         class="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-800 rounded-lg shadow-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden transform origin-top-right transition-all"
                                     >
+                                        {#if isAdmin}
+                                            <button
+                                                onclick={() => {
+                                                    openEditModal(resource);
+                                                    activeMenuId = null;
+                                                }}
+                                                class="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2"
+                                            >
+                                                <Pencil class="w-4 h-4" />
+                                                Edit
+                                            </button>
+                                            <button
+                                                onclick={() => {
+                                                    handleDelete(resource);
+                                                    activeMenuId = null;
+                                                }}
+                                                class="w-full text-left px-4 py-3 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm text-red-600 dark:text-red-400 flex items-center gap-2 border-t border-zinc-100 dark:border-zinc-700"
+                                            >
+                                                <Trash2 class="w-4 h-4" />
+                                                Delete
+                                            </button>
+                                        {/if}
                                         <button
                                             onclick={() => {
-                                                openEditModal(resource);
+                                                viewingTodosFor = resource;
                                                 activeMenuId = null;
                                             }}
-                                            class="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2"
+                                            class="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2 {isAdmin
+                                                ? 'border-t border-zinc-100 dark:border-zinc-700'
+                                                : ''}"
                                         >
-                                            <Pencil class="w-4 h-4" />
-                                            Edit
-                                        </button>
-                                        <button
-                                            onclick={() => {
-                                                handleDelete(resource);
-                                                activeMenuId = null;
-                                            }}
-                                            class="w-full text-left px-4 py-3 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm text-red-600 dark:text-red-400 flex items-center gap-2 border-t border-zinc-100 dark:border-zinc-700"
-                                        >
-                                            <Trash2 class="w-4 h-4" />
-                                            Delete
+                                            <ListTodo class="w-4 h-4" />
+                                            Tasks
                                         </button>
                                     </div>
                                 {/if}
@@ -184,15 +278,44 @@
                         {attrs.description || "No description provided."}
                     </p>
 
+                    <!-- Desktop Todo List -->
+                    <div class="hidden lg:block mb-4 space-y-1">
+                        {#each todos.filter((t) => t.attributes["resource-id"] == resource.id && t.attributes.status === 0) as todo}
+                            <button
+                                onclick={(e) => toggleTodoStatus(todo, e)}
+                                class="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400 group/todo w-full text-left hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors"
+                            >
+                                <div
+                                    class="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0 group-hover/todo:bg-green-500 transition-colors"
+                                ></div>
+                                <span
+                                    class="truncate group-hover/todo:line-through transition-all opacity-100 group-hover/todo:opacity-70"
+                                    >{todo.attributes.title}</span
+                                >
+                            </button>
+                        {/each}
+                    </div>
+
                     <div
                         class="flex items-center gap-2 text-sm pt-4 border-t border-zinc-100 dark:border-zinc-700/50"
                     >
                         {#if attrs["is-ready"]}
-                            <CheckCircle2 class="w-4 h-4 text-green-500" />
-                            <span
-                                class="text-green-700 dark:text-green-400 font-medium"
-                                >Ready for use</span
-                            >
+                            {#if todoCounts[resource.id] && todoCounts[resource.id] > 0}
+                                <AlertTriangle
+                                    class="w-4 h-4 text-orange-500"
+                                />
+                                <span
+                                    class="text-orange-700 dark:text-orange-400 font-medium"
+                                >
+                                    Tasks pending
+                                </span>
+                            {:else}
+                                <CheckCircle2 class="w-4 h-4 text-green-500" />
+                                <span
+                                    class="text-green-700 dark:text-green-400 font-medium"
+                                    >Ready for use</span
+                                >
+                            {/if}
                         {:else}
                             <XCircle class="w-4 h-4 text-red-500" />
                             <span
@@ -216,5 +339,26 @@
                 onSuccess={handleSuccess}
             />
         {/key}
+    </Modal>
+
+    <Modal
+        bind:show={
+            () => !!viewingTodosFor,
+            (v) => {
+                if (!v) {
+                    viewingTodosFor = undefined;
+                    loadResources(); // Refresh todos when modal closes
+                }
+            }
+        }
+        title={viewingTodosFor
+            ? `Tasks: ${viewingTodosFor.attributes.title}`
+            : "Tasks"}
+    >
+        {#if viewingTodosFor}
+            {#key viewingTodosFor.id}
+                <TodoList resourceId={viewingTodosFor.id} />
+            {/key}
+        {/if}
     </Modal>
 </div>
