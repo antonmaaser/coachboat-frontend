@@ -162,11 +162,11 @@
             };
         if (status >= 1)
             return {
-                label: "Active",
+                label: "Aktiviert",
                 color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
             };
         return {
-            label: "Inactive",
+            label: "Deaktiviert",
             color: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-400",
         };
     }
@@ -174,14 +174,16 @@
 
 <div class="space-y-6">
     <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Users</h1>
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">
+            Benutzer
+        </h1>
 
         <button
             onclick={openCreateModal}
             class="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-blue-600/20"
         >
             <Plus class="w-5 h-5" />
-            Invite User
+            Benutzer hinzufügen
         </button>
     </div>
 
@@ -199,7 +201,7 @@
                                 onclick={() => toggleSort("name")}
                                 class="flex items-center gap-1 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
                             >
-                                User
+                                Name
                                 {#if sortField === "name"}
                                     {#if sortDirection === "asc"}
                                         <ArrowUp class="w-4 h-4" />
@@ -214,7 +216,7 @@
                                 onclick={() => toggleSort("email")}
                                 class="flex items-center gap-1 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
                             >
-                                Email
+                                E-Mail
                                 {#if sortField === "email"}
                                     {#if sortDirection === "asc"}
                                         <ArrowUp class="w-4 h-4" />
@@ -245,8 +247,7 @@
                 <tbody class="divide-y divide-zinc-100 dark:divide-zinc-700/50">
                     {#if loading}
                         <tr
-                            ><td colspan="4" class="p-8 text-center"
-                                >Loading...</td
+                            ><td colspan="4" class="p-8 text-center">Lädt...</td
                             ></tr
                         >
                     {:else if users.length === 0}
@@ -254,7 +255,7 @@
                             ><td
                                 colspan="4"
                                 class="p-8 text-center text-zinc-500"
-                                >No users found.</td
+                                >Keine Benutzer gefunden.</td
                             ></tr
                         >
                     {:else}
@@ -323,7 +324,7 @@
                                                     class="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2"
                                                 >
                                                     <Pencil class="w-4 h-4" />
-                                                    Edit
+                                                    Bearbeiten
                                                 </button>
                                                 {#if $auth.user?.status && $auth.user.status >= 3}
                                                     <button
@@ -338,7 +339,7 @@
                                                         <KeyRound
                                                             class="w-4 h-4"
                                                         />
-                                                        Reset Password
+                                                        Passwort zurücksetzen
                                                     </button>
                                                     {#if user.attributes.status < 1}
                                                         <button
@@ -354,7 +355,7 @@
                                                             <Trash2
                                                                 class="w-4 h-4"
                                                             />
-                                                            Delete
+                                                            Benutzer löschen
                                                         </button>
                                                     {/if}
                                                 {/if}
@@ -372,18 +373,18 @@
 
     <Modal
         bind:show={showModal}
-        title={editingUser ? "Edit User" : "Invite User"}
+        title={editingUser ? "Benutzer bearbeiten" : "Benutzer hinzufügen"}
     >
         {#key editingUser?.id || "new"}
             <UserForm user={editingUser} onSuccess={handleSuccess} />
         {/key}
     </Modal>
 
-    <Modal bind:show={showPasswordModal} title="Password Reset Successful">
+    <Modal bind:show={showPasswordModal} title="Passwort zurückgesetzt">
         <div class="space-y-4">
             <p class="text-zinc-600 dark:text-zinc-400">
-                The password has been reset successfully. Please copy it now, it
-                will not be shown again.
+                Passwort wurde erfolgreich zurückgesetzt. Bitte kopieren Sie es
+                jetzt, es wird nicht mehr angezeigt.
             </p>
             <div class="relative">
                 <div
@@ -408,7 +409,7 @@
                     onclick={() => (showPasswordModal = false)}
                     class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors"
                 >
-                    Done
+                    Fertig
                 </button>
             </div>
         </div>
