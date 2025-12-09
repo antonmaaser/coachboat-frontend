@@ -32,7 +32,7 @@
     async function handleResetPassword(user: any) {
         if (
             !confirm(
-                `Reset password for ${user.attributes.first_name} ${user.attributes.name}?`,
+                `Reset password for ${user.attributes["first-name"]} ${user.attributes.name}?`,
             )
         )
             return;
@@ -55,7 +55,7 @@
     async function handleDeleteUser(user: any) {
         if (
             !confirm(
-                `Are you sure you want to delete ${user.attributes.first_name} ${user.attributes.name}? This action cannot be undone.`,
+                `Are you sure you want to delete ${user.attributes["first-name"]} ${user.attributes.name}? This action cannot be undone.`,
             )
         )
             return;
@@ -193,7 +193,7 @@
                                         </div>
                                         <span
                                             class="font-medium text-zinc-900 dark:text-white"
-                                            >{attrs.first_name}
+                                            >{attrs["first-name"]}
                                             {attrs.name}</span
                                         >
                                     </div>

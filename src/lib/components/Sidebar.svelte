@@ -68,7 +68,7 @@
                 : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 hover:text-zinc-900 dark:hover:text-zinc-200'}"
         >
             <Ship class="w-5 h-5" />
-            Resources
+            Materialien
         </a>
 
         {#if $auth.user && $auth.user.status && $auth.user.status >= 3}
@@ -87,7 +87,7 @@
                     : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 hover:text-zinc-900 dark:hover:text-zinc-200'}"
             >
                 <Users class="w-5 h-5" />
-                Users
+                Benutzer
             </a>
         {/if}
     </nav>
@@ -119,10 +119,10 @@
         >
             {#if $theme === "dark"}
                 <Sun class="w-5 h-5" />
-                <span>Light Mode</span>
+                <span>Light Modus</span>
             {:else}
                 <Moon class="w-5 h-5" />
-                <span>Dark Mode</span>
+                <span>Dark Modus</span>
             {/if}
         </button>
 
@@ -131,7 +131,7 @@
             class="flex w-full items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
         >
             <LogOut class="w-5 h-5" />
-            Sign out
+            Abmelden
         </button>
     </div>
 </aside>

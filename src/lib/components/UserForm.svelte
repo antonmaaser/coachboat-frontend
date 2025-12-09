@@ -7,11 +7,19 @@
         onSuccess: () => void;
     }>();
 
-    let name = $state(user?.attributes.name || "");
-    let firstName = $state(user?.attributes["first-name"] || "");
-    let email = $state(user?.attributes.email || "");
+    let name = $state("");
+    let firstName = $state("");
+    let email = $state("");
     let password = $state(""); // Only for creation/reset if needed, but simplified for now
-    let status = $state(user?.attributes.status ?? 1); // Default to Active (1)
+    let status = $state(1); // Default to Active (1)
+
+    $effect(() => {
+        name = user?.attributes.name || "";
+        firstName = user?.attributes["first-name"] || "";
+        email = user?.attributes.email || "";
+        status = user?.attributes.status ?? 1;
+        // Password usually doesn't need to be reset from user prop on edit
+    });
 
     let loading = $state(false);
     let error = $state("");
