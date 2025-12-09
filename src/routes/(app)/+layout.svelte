@@ -5,8 +5,10 @@
     import { browser } from "$app/environment";
 
     import { client } from "$lib/api/client";
+    import { Menu } from "lucide-svelte";
 
     let { children } = $props();
+    let mobileMenuOpen = $state(false);
 
     $effect(() => {
         if (browser) {
@@ -32,12 +34,38 @@
             }
         }
     });
+
+    function toggleMobileMenu() {
+        mobileMenuOpen = !mobileMenuOpen;
+    }
 </script>
 
 <div
     class="min-h-screen bg-zinc-50 dark:bg-zinc-900 transition-colors duration-300"
 >
-    <Sidebar />
+    <!-- Mobile Header -->
+    <header
+        class="md:hidden flex items-center justify-between p-4 bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 sticky top-0 z-30"
+    >
+        <div class="flex items-center gap-2">
+            <div
+                class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold"
+            >
+                CP
+            </div>
+            <span class="font-bold text-lg text-zinc-900 dark:text-white"
+                >Coachboat-Planer</span
+            >
+        </div>
+        <button
+            onclick={toggleMobileMenu}
+            class="p-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 rounded-lg transition-colors"
+        >
+            <Menu class="w-6 h-6" />
+        </button>
+    </header>
+
+    <Sidebar bind:isOpen={mobileMenuOpen} />
     <main class="md:ml-64 min-h-screen transition-all duration-300">
         <div class="p-8">
             <!-- Mobile Toggle could go here -->

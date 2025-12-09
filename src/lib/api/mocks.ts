@@ -31,7 +31,8 @@ export const mockEvents = [
             date: new Date().toISOString().split('T')[0], // Today
             'start-date': new Date().toISOString(),
             'end-date': new Date(Date.now() + 3600000).toISOString(),
-            description: 'Intense rowing session'
+            description: 'Intense rowing session',
+            resource: '201'
         }
     }
 ];
@@ -162,6 +163,31 @@ export async function handleMockRequest(url: string, options: RequestInit): Prom
         if (!options.method || options.method === 'GET') {
             // In a real mock we would filter by year/month params here
             return new Response(JSON.stringify({ data: mockEvents }), { status: 200 });
+        }
+        if (options.method === 'POST') {
+            const body = JSON.parse(options.body as string);
+            const newEvent = {
+                id: String(Date.now()),
+                type: 'events',
+                attributes: body.data.attributes
+            };
+            mockEvents.push(newEvent);
+            return new Response(JSON.stringify({ data: newEvent }), { status: 201 });
+        }
+        const eventId = path.split('/events/')[1];
+        if (eventId) {
+            const idx = mockEvents.findIndex(e => e.id === eventId);
+            if (idx !== -1) {
+                if (options.method === 'DELETE') {
+                    mockEvents.splice(idx, 1);
+                    return new Response(null, { status: 204 });
+                }
+                if (options.method === 'PATCH') {
+                    const body = JSON.parse(options.body as string);
+                    mockEvents[idx].attributes = { ...mockEvents[idx].attributes, ...body.data.attributes };
+                    return new Response(JSON.stringify({ data: mockEvents[idx] }), { status: 200 });
+                }
+            }
         }
     }
 

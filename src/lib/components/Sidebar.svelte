@@ -12,35 +12,63 @@
         Sun,
         Moon,
         Settings,
+        DraftingCompass,
+        X,
     } from "lucide-svelte";
 
     // $auth is available because we import the store
+
+    let { isOpen = $bindable(false) } = $props();
 
     function isActive(href: string, path: string) {
         if (href === "/") return path === "/";
         return path.startsWith(href);
     }
+
+    function close() {
+        isOpen = false;
+    }
 </script>
 
+<!-- Mobile Backdrop -->
+{#if isOpen}
+    <div
+        class="fixed inset-0 bg-black/50 z-40 md:hidden"
+        onclick={close}
+        aria-hidden="true"
+    ></div>
+{/if}
+
 <aside
-    class="hidden md:flex flex-col w-64 bg-white dark:bg-zinc-800 border-r border-zinc-200 dark:border-zinc-700 h-screen fixed left-0 top-0 transition-colors duration-300"
+    class="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-zinc-800 border-r border-zinc-200 dark:border-zinc-700 transition-transform duration-300 ease-in-out md:translate-x-0
+    {isOpen ? 'translate-x-0' : '-translate-x-full'}"
 >
     <div
-        class="p-6 flex items-center gap-3 border-b border-zinc-100 dark:border-zinc-700/50"
+        class="p-6 flex items-center justify-between border-b border-zinc-100 dark:border-zinc-700/50"
     >
-        <div
-            class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold"
-        >
-            CP
+        <div class="flex items-center gap-3">
+            <div
+                class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold"
+            >
+                CP
+            </div>
+            <span class="font-bold text-lg text-zinc-900 dark:text-white"
+                >Coachboat-Planer</span
+            >
         </div>
-        <span class="font-bold text-lg text-zinc-900 dark:text-white"
-            >Coachboat-Planer</span
+        <!-- Mobile Close Button -->
+        <button
+            onclick={close}
+            class="md:hidden text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
         >
+            <X class="w-6 h-6" />
+        </button>
     </div>
 
     <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
         <a
             href="/"
+            onclick={close}
             class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium
         {isActive('/', $page.url.pathname)
                 ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
@@ -52,6 +80,7 @@
 
         <a
             href="/events"
+            onclick={close}
             class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium
         {isActive('/events', $page.url.pathname)
                 ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
@@ -63,12 +92,13 @@
 
         <a
             href="/resources"
+            onclick={close}
             class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium
         {isActive('/resources', $page.url.pathname)
                 ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
                 : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 hover:text-zinc-900 dark:hover:text-zinc-200'}"
         >
-            <Ship class="w-5 h-5" />
+            <DraftingCompass class="w-5 h-5" />
             Materialien
         </a>
 
@@ -82,6 +112,7 @@
             </div>
             <a
                 href="/users"
+                onclick={close}
                 class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium
             {isActive('/users', $page.url.pathname)
                     ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
@@ -94,6 +125,7 @@
 
         <a
             href="/settings"
+            onclick={close}
             class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium
         {isActive('/settings', $page.url.pathname)
                 ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'

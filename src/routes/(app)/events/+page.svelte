@@ -1,6 +1,7 @@
 <script lang="ts">
     import { eventApi } from "$lib/api/events";
     import { resourceApi } from "$lib/api/resources";
+    import { resourceCategoryApi } from "$lib/api/resource-categories";
     import { userApi } from "$lib/api/users";
     import { auth } from "$lib/stores/auth";
     import {
@@ -10,11 +11,15 @@
         Loader2,
         AlertCircle,
     } from "lucide-svelte";
+    import * as Icons from "lucide-svelte";
     import { onMount } from "svelte";
+    import Modal from "$lib/components/Modal.svelte";
 
     let currentDate = $state(new Date());
     let events = $state<any[]>([]);
     let resources = $state<any[]>([]);
+    let categories = $state<any[]>([]);
+    let selectedCategoryId = $state<string | null>(null);
     let loading = $state(false);
     let error = $state("");
 
@@ -47,16 +52,9 @@
         loading = true;
         error = "";
         try {
-            const res = await eventApi.list(year, month + 1); // API expects 1-12
+            const res = await eventApi.list(year, month + 1);
             if (res.ok) {
                 const json = await res.json();
-                // API definition: Response: Array of event objects.
-                // If JSON:API, it might be { data: [...] }
-                // User doc: "Response: Array of event objects" -> could be direct array or wrapped.
-                // Usually JSON:API is { data: [...] }. Let's assume { data: [...] } if wrapped, or fallback.
-                // Based on `client` usage in login, we parsed json.
-
-                // Let's assume standard JSON:API-ish used in Login.
                 events = json.data || json;
             } else {
                 console.error("Failed to load events", res.status);
@@ -82,13 +80,21 @@
 
     onMount(async () => {
         try {
-            const res = await resourceApi.list();
-            if (res.ok) {
-                const json = await res.json();
+            const [resResources, resCategories] = await Promise.all([
+                resourceApi.list(),
+                resourceCategoryApi.list(),
+            ]);
+
+            if (resResources.ok) {
+                const json = await resResources.json();
                 resources = json.data || json;
             }
+            if (resCategories.ok) {
+                const json = await resCategories.json();
+                categories = json.data || json;
+            }
         } catch (e) {
-            console.error("Failed to load resources", e);
+            console.error("Failed to load data", e);
         }
     });
 
@@ -102,21 +108,36 @@
 
     function getEventsForDay(day: number) {
         if (!day) return [];
-        // Map events to day. Event date format "2023-10-27"
-        // Date string format: YYYY-MM-DD
         const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
         return events.filter((e: any) => {
+            // Date Filter
             const attr = e.attributes || e;
             if (!attr.date) return false;
-
-            // Handle ISO string and timezone conversion by parsing as Date
             const d = new Date(attr.date);
             const eventDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+            if (eventDateStr !== dateStr) return false;
 
-            return eventDateStr === dateStr;
+            // Category Filter
+            if (selectedCategoryId) {
+                const resourceId = attr.resource;
+                if (!resourceId) return false;
+                const resource = resources.find(
+                    (r) => String(r.id) === String(resourceId),
+                );
+                if (!resource) return false;
+
+                // Ensure type safety when comparing
+                if (
+                    String(resource.attributes["category-id"]) !==
+                    String(selectedCategoryId)
+                )
+                    return false;
+            }
+
+            return true;
         });
     }
-    import Modal from "$lib/components/Modal.svelte";
 
     let showCreateModal = $state(false);
     let showDetailModal = $state(false);
@@ -135,7 +156,6 @@
     function formatDate(dateStr: string) {
         if (!dateStr) return "";
         const d = new Date(dateStr);
-        // Use local date components
         const day = String(d.getDate()).padStart(2, "0");
         const month = String(d.getMonth() + 1).padStart(2, "0");
         const year = d.getFullYear();
@@ -152,8 +172,8 @@
 
     async function handleEventClick(event: any) {
         selectedEvent = event;
-        selectedResource = null; // Reset
-        selectedUser = null; // Reset
+        selectedResource = null;
+        selectedUser = null;
         showDetailModal = true;
 
         const resourceId = event.attributes.resource;
@@ -169,8 +189,6 @@
             }
         }
 
-        // Fetch user/creator
-        // User specified that user ID is in 'created-by' field
         const userId =
             event.attributes?.["created-by"] ||
             event.relationships?.user?.data?.id ||
@@ -211,7 +229,6 @@
         if (!selectedEvent) return;
 
         editTargetId = selectedEvent.id;
-        // Populate form
         newEvent = {
             title: selectedEvent.attributes.title,
             date: selectedEvent.attributes.date.split("T")[0],
@@ -228,7 +245,6 @@
         e.preventDefault();
         creating = true;
         try {
-            // Convert time strings (HH:MM) to seconds from midnight
             const [startH, startM] = newEvent.startTime.split(":").map(Number);
             const [endH, endM] = newEvent.endTime.split(":").map(Number);
 
@@ -252,9 +268,8 @@
 
             if (res.ok) {
                 showCreateModal = false;
-                editTargetId = null; // Reset
-                loadEvents(); // Refresh
-                // Reset form
+                editTargetId = null;
+                loadEvents();
                 newEvent = {
                     title: "",
                     date: getLocalISODate(),
@@ -337,6 +352,51 @@
             </button>
         {/if}
     </div>
+
+    <!-- Category Filter -->
+    {#if categories.length > 0}
+        <div class="flex flex-wrap gap-2">
+            <button
+                class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors border"
+                class:bg-zinc-900={!selectedCategoryId}
+                class:text-white={!selectedCategoryId}
+                class:border-zinc-900={!selectedCategoryId}
+                class:bg-white={selectedCategoryId}
+                class:text-zinc-600={selectedCategoryId}
+                class:border-zinc-200={selectedCategoryId}
+                class:dark:bg-white={!selectedCategoryId}
+                class:dark:text-zinc-900={!selectedCategoryId}
+                class:dark:border-white={!selectedCategoryId}
+                class:dark:bg-zinc-800={selectedCategoryId}
+                class:dark:text-zinc-400={selectedCategoryId}
+                class:dark:border-zinc-700={selectedCategoryId}
+                onclick={() => (selectedCategoryId = null)}
+            >
+                Alle
+            </button>
+            {#each categories as category}
+                <button
+                    class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors border"
+                    style={selectedCategoryId === category.id
+                        ? `background-color: ${category.attributes.color}; color: white; border-color: ${category.attributes.color}`
+                        : `background-color: transparent; color: ${category.attributes.color}; border-color: ${category.attributes.color}40`}
+                    onclick={() =>
+                        (selectedCategoryId =
+                            selectedCategoryId === category.id
+                                ? null
+                                : category.id)}
+                >
+                    {#if category.attributes.icon && (Icons as any)[category.attributes.icon]}
+                        <svelte:component
+                            this={(Icons as any)[category.attributes.icon]}
+                            class="w-4 h-4"
+                        />
+                    {/if}
+                    {category.attributes.title}
+                </button>
+            {/each}
+        </div>
+    {/if}
 
     {#if error}
         <div
