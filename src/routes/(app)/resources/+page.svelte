@@ -157,7 +157,7 @@
                 class="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-blue-600/20"
             >
                 <Plus class="w-5 h-5" />
-                New Resource
+                Material anlegen
             </button>
         {/if}
     </div>
@@ -184,10 +184,10 @@
         >
             <Ship class="w-12 h-12 mx-auto text-zinc-400 mb-4" />
             <h3 class="text-lg font-medium text-zinc-900 dark:text-white">
-                No resources found
+                Keine Materialien gefunden
             </h3>
             <p class="text-zinc-500 mt-1">
-                There are no boats or resources available yet.
+                Es sind noch keine Materialien verfügbar.
             </p>
         </div>
     {:else}
@@ -236,7 +236,7 @@
                                                 class="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2"
                                             >
                                                 <Pencil class="w-4 h-4" />
-                                                Edit
+                                                Bearbeiten
                                             </button>
                                             <button
                                                 onclick={() => {
@@ -246,7 +246,7 @@
                                                 class="w-full text-left px-4 py-3 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm text-red-600 dark:text-red-400 flex items-center gap-2 border-t border-zinc-100 dark:border-zinc-700"
                                             >
                                                 <Trash2 class="w-4 h-4" />
-                                                Delete
+                                                Löschen
                                             </button>
                                         {/if}
                                         <button
@@ -259,7 +259,7 @@
                                                 : ''}"
                                         >
                                             <ListTodo class="w-4 h-4" />
-                                            Tasks
+                                            Aufgaben
                                         </button>
                                     </div>
                                 {/if}
@@ -307,20 +307,20 @@
                                 <span
                                     class="text-orange-700 dark:text-orange-400 font-medium"
                                 >
-                                    Tasks pending
+                                    Aufgaben ausstehend
                                 </span>
                             {:else}
                                 <CheckCircle2 class="w-4 h-4 text-green-500" />
                                 <span
                                     class="text-green-700 dark:text-green-400 font-medium"
-                                    >Ready for use</span
+                                    >Material verfügbar</span
                                 >
                             {/if}
                         {:else}
                             <XCircle class="w-4 h-4 text-red-500" />
                             <span
                                 class="text-red-700 dark:text-red-400 font-medium"
-                                >Not available</span
+                                >Material nicht verfügbar</span
                             >
                         {/if}
                     </div>
@@ -331,7 +331,7 @@
 
     <Modal
         bind:show={showModal}
-        title={editingResource ? "Edit Resource" : "New Resource"}
+        title={editingResource ? "Material bearbeiten" : "Neues Material"}
     >
         {#key editingResource?.id || "new"}
             <ResourceForm
@@ -352,8 +352,8 @@
             }
         }
         title={viewingTodosFor
-            ? `Tasks: ${viewingTodosFor.attributes.title}`
-            : "Tasks"}
+            ? `Aufgaben: ${viewingTodosFor.attributes.title}`
+            : "Aufgaben"}
     >
         {#if viewingTodosFor}
             {#key viewingTodosFor.id}
