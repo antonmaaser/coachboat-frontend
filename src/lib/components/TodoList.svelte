@@ -230,7 +230,9 @@
         </div>
     {:else if filteredTodos.length === 0}
         <div class="text-center p-6 text-zinc-500 text-sm">
-            {todos.length > 0 ? "No open tasks." : "No tasks yet."}
+            {todos.length > 0
+                ? "Keine offenen Aufgaben."
+                : "Noch keine Aufgaben."}
         </div>
     {:else}
         <ul class="space-y-2">

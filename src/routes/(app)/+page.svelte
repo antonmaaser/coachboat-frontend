@@ -23,7 +23,7 @@
             class="bg-white dark:bg-zinc-800 p-6 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700"
         >
             <h3 class="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                Welcome back
+                Willkommen zurück
             </h3>
             <p class="text-2xl font-bold text-zinc-900 dark:text-white mt-2">
                 {$auth.user?.firstName || "User"}
@@ -34,8 +34,19 @@
                 <span
                     class="w-2 h-2 rounded-full bg-green-600 dark:bg-green-400 mr-2"
                 ></span>
-                Active Status
+                Aktiver Status
             </div>
+        </div>
+
+        <div
+            class="bg-white dark:bg-zinc-800 p-6 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700 md:col-span-3 lg:col-span-1"
+        >
+            <h3
+                class="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-4"
+            >
+                Offene Aufgaben
+            </h3>
+            <TodoList />
         </div>
 
         <div
@@ -47,26 +58,15 @@
                     href="/events"
                     class="block bg-white/10 hover:bg-white/20 transition-colors px-3 py-2 rounded-lg text-sm font-medium text-white"
                 >
-                    View Calendar
+                    Kalender anschauen
                 </a>
                 <a
                     href="/resources"
                     class="block bg-white/10 hover:bg-white/20 transition-colors px-3 py-2 rounded-lg text-sm font-medium text-white"
                 >
-                    Book a Boat
+                    Boot buchen
                 </a>
             </div>
-        </div>
-
-        <div
-            class="bg-white dark:bg-zinc-800 p-6 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700 md:col-span-3 lg:col-span-1"
-        >
-            <h3
-                class="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-4"
-            >
-                All Open Tasks
-            </h3>
-            <TodoList />
         </div>
     </div>
 </div>
