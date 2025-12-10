@@ -9,12 +9,24 @@
             Dashboard
         </h1>
         <span class="text-sm text-zinc-500 dark:text-zinc-400">
-            {new Date().toLocaleDateString("de-DE", {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-            })}
+            <!-- Mobile Date (Short) -->
+            <span class="md:hidden">
+                {new Date().toLocaleDateString("de-DE", {
+                    weekday: "short",
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                })}
+            </span>
+            <!-- Desktop Date (Long) -->
+            <span class="hidden md:inline">
+                {new Date().toLocaleDateString("de-DE", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                })}
+            </span>
         </span>
     </div>
 

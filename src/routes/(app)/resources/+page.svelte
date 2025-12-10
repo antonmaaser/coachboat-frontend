@@ -156,15 +156,17 @@
 </script>
 
 <div class="space-y-6">
-    <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">
+    <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+        <h1
+            class="text-2xl font-bold text-zinc-900 dark:text-white w-full md:w-auto"
+        >
             Resources
         </h1>
 
         {#if isAdmin}
             <button
                 onclick={openCreateModal}
-                class="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-blue-600/20"
+                class="w-full md:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-blue-600/20"
             >
                 <Plus class="w-5 h-5" />
                 Material anlegen

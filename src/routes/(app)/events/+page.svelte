@@ -20,6 +20,7 @@
     let resources = $state<any[]>([]);
     let categories = $state<any[]>([]);
     let selectedCategoryId = $state<string | null>(null);
+    let selectedDay = $state(new Date().getDate());
     let loading = $state(false);
     let error = $state("");
 
@@ -100,10 +101,12 @@
 
     function prevMonth() {
         currentDate = new Date(year, month - 1, 1);
+        selectedDay = 1;
     }
 
     function nextMonth() {
         currentDate = new Date(year, month + 1, 1);
+        selectedDay = 1;
     }
 
     function getEventsForDay(day: number) {
@@ -309,13 +312,18 @@
 
 <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-        <div class="flex items-center gap-4">
+    <!-- Header -->
+    <div
+        class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
+    >
+        <div
+            class="flex flex-col md:flex-row items-start md:items-center gap-4 w-full md:w-auto"
+        >
             <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">
                 Buchungen
             </h1>
             <div
-                class="flex items-center bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 shadow-sm"
+                class="flex items-center justify-between bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 shadow-sm w-full md:w-auto"
             >
                 <button
                     onclick={prevMonth}
@@ -326,7 +334,7 @@
                     />
                 </button>
                 <span
-                    class="px-4 py-2 font-medium min-w-[140px] text-center text-zinc-900 dark:text-white border-x border-zinc-200 dark:border-zinc-700"
+                    class="px-4 py-2 font-medium flex-1 md:flex-none text-center text-zinc-900 dark:text-white border-x border-zinc-200 dark:border-zinc-700 min-w-[140px]"
                 >
                     {monthName}
                     {year}
@@ -345,7 +353,7 @@
         {#if isAdmin}
             <button
                 onclick={openCreateModal}
-                class="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-blue-600/20"
+                class="w-full md:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-blue-600/20"
             >
                 <Plus class="w-5 h-5" />
                 Neue Buchung
@@ -407,9 +415,118 @@
         </div>
     {/if}
 
-    <!-- Calendar Grid -->
+    <!-- Mobile Date Scroller & Event List -->
+    <div class="block md:hidden space-y-4">
+        <!-- Date Scroller -->
+        <div class="flex overflow-x-auto gap-2 pb-2 -mx-4 px-4 scrollbar-hide">
+            {#each Array(daysInMonth) as _, i}
+                {@const day = i + 1}
+                {@const date = new Date(year, month, day)}
+                {@const isSelected = selectedDay === day}
+                {@const isToday =
+                    day === new Date().getDate() &&
+                    month === new Date().getMonth() &&
+                    year === new Date().getFullYear()}
+                <button
+                    class="flex flex-col items-center justify-center min-w-[3.5rem] h-16 rounded-xl border transition-all {isSelected
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20'
+                        : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700'}"
+                    onclick={() => (selectedDay = day)}
+                >
+                    <span class="text-xs font-medium opacity-80">
+                        {date.toLocaleDateString("de-DE", { weekday: "short" })}
+                    </span>
+                    <span class="text-lg font-bold">
+                        {day}
+                    </span>
+                    {#if isToday && !isSelected}
+                        <div
+                            class="w-1 h-1 bg-blue-600 rounded-full mt-1"
+                        ></div>
+                    {/if}
+                </button>
+            {/each}
+        </div>
+
+        <!-- Selected Day Events -->
+        <div class="space-y-3">
+            <h3 class="font-medium text-zinc-900 dark:text-white px-1">
+                {selectedDay}. {monthName}
+            </h3>
+
+            {#if loading}
+                <div class="flex justify-center py-8">
+                    <Loader2 class="w-6 h-6 animate-spin text-zinc-400" />
+                </div>
+            {:else}
+                {@const dayEvents = getEventsForDay(selectedDay)}
+                {#if dayEvents.length === 0}
+                    <div
+                        class="text-center py-8 text-zinc-500 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700"
+                    >
+                        Keine Buchungen für diesen Tag
+                    </div>
+                {:else}
+                    {#each dayEvents as event}
+                        <!-- svelte-ignore a11y_click_events_have_key_events -->
+                        <!-- svelte-ignore a11y_no_static_element_interactions -->
+                        <div
+                            onclick={() => handleEventClick(event)}
+                            class="bg-white dark:bg-zinc-800 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-sm flex gap-4 active:scale-[0.98] transition-transform"
+                        >
+                            <div
+                                class="flex flex-col items-center justify-center px-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-700 dark:text-blue-300"
+                            >
+                                <span class="text-xs font-medium">Start</span>
+                                <span class="font-bold"
+                                    >{formatSeconds(
+                                        event.attributes["start-date"],
+                                    )}</span
+                                >
+                            </div>
+
+                            <div class="flex-1 min-w-0 py-1">
+                                <h4
+                                    class="font-semibold text-zinc-900 dark:text-white truncate"
+                                >
+                                    {event.attributes.title}
+                                </h4>
+                                <div
+                                    class="flex items-center gap-2 mt-1 text-sm text-zinc-500 dark:text-zinc-400"
+                                >
+                                    <span>
+                                        {formatSeconds(
+                                            event.attributes["start-date"],
+                                        )} - {formatSeconds(
+                                            event.attributes["end-date"],
+                                        )}
+                                    </span>
+                                </div>
+                                {#if event.attributes.resource}
+                                    {@const r = resources.find(
+                                        (r) =>
+                                            String(r.id) ===
+                                            String(event.attributes.resource),
+                                    )}
+                                    {#if r}
+                                        <div
+                                            class="mt-2 text-xs inline-flex items-center px-2 py-1 bg-zinc-100 dark:bg-zinc-700 rounded text-zinc-600 dark:text-zinc-300"
+                                        >
+                                            {r.attributes.title}
+                                        </div>
+                                    {/if}
+                                {/if}
+                            </div>
+                        </div>
+                    {/each}
+                {/if}
+            {/if}
+        </div>
+    </div>
+
+    <!-- Calendar Grid (Desktop) -->
     <div
-        class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden relative"
+        class="hidden md:block bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden relative"
     >
         {#if loading}
             <div
@@ -428,7 +545,7 @@
 
         <!-- Days Header -->
         <div
-            class="grid grid-cols-7 border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50"
+            class="hidden md:grid grid-cols-7 border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50"
         >
             {#each ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"] as day}
                 <div
@@ -440,7 +557,7 @@
         </div>
 
         <!-- Days Grid -->
-        <div class="grid grid-cols-7 auto-rows-fr min-h-[600px]">
+        <div class="hidden md:grid grid-cols-7 auto-rows-fr min-h-[600px]">
             {#each calendarDays as day}
                 <div
                     class="min-h-[100px] border-b border-r border-zinc-100 dark:border-zinc-700/50 p-2 relative group hover:bg-zinc-50 dark:hover:bg-zinc-700/20 transition-colors"

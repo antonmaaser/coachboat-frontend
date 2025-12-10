@@ -67,7 +67,7 @@
 
     <Sidebar bind:isOpen={mobileMenuOpen} />
     <main class="md:ml-64 min-h-screen transition-all duration-300">
-        <div class="p-8">
+        <div class="p-4 md:p-8">
             <!-- Mobile Toggle could go here -->
             {@render children()}
         </div>
