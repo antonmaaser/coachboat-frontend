@@ -7,8 +7,8 @@ const DEV_CONFIG = {
 // Production Configuration (Build/Runtime)
 // TODO: Replace these with your actual production URLs
 const PROD_CONFIG = {
-    API_BASE: 'https://api.coachboat-planer.com',
-    AUTH_BASE: 'https://auth.coachboat-planer.com'
+    API_BASE: 'https://api.coachboat-planer.de',
+    AUTH_BASE: 'https://auth.coachboat-planer.de'
 };
 
 const config = import.meta.env.DEV ? DEV_CONFIG : PROD_CONFIG;
