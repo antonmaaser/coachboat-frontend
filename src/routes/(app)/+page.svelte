@@ -48,6 +48,11 @@
                 ></span>
                 Aktiver Status
             </div>
+            <p
+                class="mt-4 text-xs text-zinc-400 dark:text-zinc-500 italic border-t border-zinc-100 dark:border-zinc-700/50 pt-2"
+            >
+                Pssst: etwas anderes Aussehen, gleiche Funktionen ;)
+            </p>
         </div>
 
         <div

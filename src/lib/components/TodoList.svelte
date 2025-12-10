@@ -217,10 +217,10 @@
                 bind:checked={showCompleted}
                 class="rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
             />
-            Zeige abgeschlossene
+            Zeige Alle
         </label>
         <span class="text-xs text-zinc-400">
-            {todos.filter((t) => t.attributes.status === 0).length} open
+            {todos.filter((t) => t.attributes.status === 0).length} offen
         </span>
     </div>
 

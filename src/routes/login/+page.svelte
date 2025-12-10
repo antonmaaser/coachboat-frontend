@@ -30,9 +30,11 @@
 
             if (!tokenRes.ok) {
                 if (tokenRes.status === 400 || tokenRes.status === 401) {
-                    throw new Error("Invalid email or password.");
+                    throw new Error("Ungültige E-Mail oder Passwort.");
                 }
-                throw new Error("Login failed. Please try again.");
+                throw new Error(
+                    "Anmeldung fehlgeschlagen. Versuch es bitte erneut.",
+                );
             }
 
             const tokenData = await tokenRes.json();
@@ -90,10 +92,10 @@
             <h2
                 class="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white"
             >
-                Welcome back
+                Willkommen zurück
             </h2>
             <p class="text-sm text-zinc-500 dark:text-zinc-400">
-                Sign in to Coachboat Planner
+                Melde Dich an
             </p>
         </div>
 
@@ -109,7 +111,7 @@
 
             <div class="space-y-4">
                 <div>
-                    <label for="email" class="sr-only">Email address</label>
+                    <label for="email" class="sr-only">E-Mail Adresse</label>
                     <div class="relative">
                         <div
                             class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400"
@@ -123,7 +125,7 @@
                             required
                             bind:value={email}
                             class="block w-full rounded-lg border-0 bg-zinc-50 dark:bg-zinc-900/50 py-3 pl-10 text-zinc-900 dark:text-white ring-1 ring-inset ring-zinc-200 dark:ring-zinc-700 placeholder:text-zinc-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 transition-all"
-                            placeholder="Email address"
+                            placeholder="E-Mail Adresse"
                         />
                     </div>
                 </div>
@@ -143,7 +145,7 @@
                             required
                             bind:value={password}
                             class="block w-full rounded-lg border-0 bg-zinc-50 dark:bg-zinc-900/50 py-3 pl-10 text-zinc-900 dark:text-white ring-1 ring-inset ring-zinc-200 dark:ring-zinc-700 placeholder:text-zinc-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 transition-all"
-                            placeholder="Password"
+                            placeholder="Passwort"
                         />
                     </div>
                 </div>
@@ -157,19 +159,19 @@
                 >
                     {#if loading}
                         <Loader2 class="mr-2 h-5 w-5 animate-spin" />
-                        Signing in...
+                        Anmeldung...
                     {:else}
-                        Sign in
+                        Anmelden
                     {/if}
                 </button>
             </div>
         </form>
 
         <div class="text-center text-sm text-zinc-500 dark:text-zinc-400">
-            First time logging in? <a
+            Erstes Mal hier? <a
                 href="/activate"
                 class="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400"
-                >Activate your account</a
+                >Aktiviere Dein Konto</a
             >
         </div>
     </div>

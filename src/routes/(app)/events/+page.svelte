@@ -307,7 +307,7 @@
         showCreateModal = true;
     }
 
-    let isAdmin = $derived($auth.user?.status && $auth.user.status >= 3);
+    let canCreate = $derived($auth.user?.status && $auth.user.status >= 1);
 </script>
 
 <div class="space-y-6">
@@ -350,7 +350,7 @@
             </div>
         </div>
 
-        {#if isAdmin}
+        {#if canCreate}
             <button
                 onclick={openCreateModal}
                 class="w-full md:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-blue-600/20"
@@ -427,8 +427,9 @@
                     day === new Date().getDate() &&
                     month === new Date().getMonth() &&
                     year === new Date().getFullYear()}
+                {@const hasEvents = getEventsForDay(day).length > 0}
                 <button
-                    class="flex flex-col items-center justify-center min-w-[3.5rem] h-16 rounded-xl border transition-all {isSelected
+                    class="flex flex-col items-center justify-center min-w-[3.5rem] h-16 rounded-xl border transition-all relative {isSelected
                         ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20'
                         : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700'}"
                     onclick={() => (selectedDay = day)}
@@ -439,11 +440,21 @@
                     <span class="text-lg font-bold">
                         {day}
                     </span>
-                    {#if isToday && !isSelected}
-                        <div
-                            class="w-1 h-1 bg-blue-600 rounded-full mt-1"
-                        ></div>
-                    {/if}
+
+                    <div class="absolute bottom-1.5 flex gap-1">
+                        {#if isToday && !isSelected}
+                            <div
+                                class="w-1 h-1 bg-current rounded-full opacity-50"
+                            ></div>
+                        {/if}
+                        {#if hasEvents}
+                            <div
+                                class="w-1 h-1 bg-blue-500 rounded-full {isSelected
+                                    ? 'bg-white'
+                                    : ''}"
+                            ></div>
+                        {/if}
+                    </div>
                 </button>
             {/each}
         </div>

@@ -160,7 +160,7 @@
         <h1
             class="text-2xl font-bold text-zinc-900 dark:text-white w-full md:w-auto"
         >
-            Resources
+            Material
         </h1>
 
         {#if isAdmin}

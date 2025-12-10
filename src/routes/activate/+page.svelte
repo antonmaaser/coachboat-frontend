@@ -21,11 +21,11 @@
   async function handleActivate(e: Event) {
     e.preventDefault();
     if (password !== rePassword) {
-      error = "Passwords do not match";
+      error = "Passwörter stimmen nicht überein";
       return;
     }
     if (password.length < 6) {
-      error = "Password must be at least 6 characters";
+      error = "Passwort muss mindestens 6 Zeichen lang sein";
       return;
     }
 
@@ -52,7 +52,7 @@
         const errData = await res.json().catch(() => ({}));
         throw new Error(
           errData.errors?.[0]?.detail ||
-            "Activation failed. Token might be invalid or expired.",
+            "Aktivierung fehlgeschlagen. Token könnte ungültig oder abgelaufen sein.",
         );
       }
 
@@ -61,7 +61,7 @@
         goto("/login");
       }, 2000);
     } catch (e: any) {
-      error = e.message || "An error occurred";
+      error = e.message || "Ein Fehler ist aufgetreten";
     } finally {
       loading = false;
     }
@@ -83,10 +83,10 @@
       <h2
         class="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white"
       >
-        Activate Account
+        Konto aktivieren
       </h2>
       <p class="text-sm text-zinc-500 dark:text-zinc-400">
-        Set your password to get started
+        Setze dein Passwort um loszulegen
       </p>
     </div>
 
@@ -98,10 +98,10 @@
           class="w-12 h-12 text-green-600 dark:text-green-400 mx-auto mb-2"
         />
         <h3 class="text-lg font-medium text-green-800 dark:text-green-300">
-          Account Activated!
+          Konto aktiviert!
         </h3>
         <p class="text-green-700 dark:text-green-400 mt-1">
-          Redirecting to login...
+          Weiterleitung zu Login...
         </p>
       </div>
     {:else}
@@ -120,7 +120,7 @@
             <label
               for="token"
               class="block text-sm font-medium leading-6 text-zinc-900 dark:text-white"
-              >Activation Token</label
+              >Aktivierungs Token</label
             >
             <div class="mt-2">
               <input
@@ -130,7 +130,7 @@
                 required
                 bind:value={token}
                 class="block w-full rounded-lg border-0 bg-zinc-50 dark:bg-zinc-900/50 py-3 text-zinc-900 dark:text-white ring-1 ring-inset ring-zinc-200 dark:ring-zinc-700 placeholder:text-zinc-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
-                placeholder="Paste token if not auto-filled"
+                placeholder="Falls nicht automatisch eingegeben, hier Token einfügen"
               />
             </div>
           </div>
@@ -139,7 +139,7 @@
             <label
               for="password"
               class="block text-sm font-medium leading-6 text-zinc-900 dark:text-white"
-              >New Password</label
+              >Neues Passwort</label
             >
             <div class="mt-2">
               <input
@@ -157,7 +157,7 @@
             <label
               for="rePassword"
               class="block text-sm font-medium leading-6 text-zinc-900 dark:text-white"
-              >Confirm Password</label
+              >Passwort bestätigen</label
             >
             <div class="mt-2">
               <input
@@ -172,7 +172,7 @@
           </div>
         </div>
 
-        <div>
+        <div class="space-y-4">
           <button
             type="submit"
             disabled={loading}
@@ -180,11 +180,19 @@
           >
             {#if loading}
               <Loader2 class="mr-2 h-5 w-5 animate-spin" />
-              Activating...
+              Aktivierung...
             {:else}
-              Activate Account
+              Konto aktivieren
             {/if}
           </button>
+
+          <div class="text-center text-sm text-zinc-500 dark:text-zinc-400">
+            <a
+              href="/login"
+              class="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400"
+              >Zurück zum Login</a
+            >
+          </div>
         </div>
       </form>
     {/if}
