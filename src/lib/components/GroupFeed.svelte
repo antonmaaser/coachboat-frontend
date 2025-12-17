@@ -1,6 +1,7 @@
 <script lang="ts">
     import { groupApi } from "$lib/api/groups";
     import PostItem from "./PostItem.svelte";
+    import Editor from "$lib/components/editor/Editor.svelte";
     import { Loader2, Send } from "lucide-svelte";
     import { onMount, untrack } from "svelte";
 
@@ -15,7 +16,8 @@
     let items = $state<any[]>([]);
 
     // Post Creation State
-    let newPostContent = $state("");
+    let editorData = $state<any>(null);
+    let renderKey = $state(0);
     let creating = $state(false);
 
     async function loadFeed() {
@@ -110,14 +112,15 @@
     }
 
     async function handleCreatePost() {
-        if (!newPostContent.trim()) return;
+        if (!editorData || editorData.blocks?.length === 0) return;
         creating = true;
         try {
             const res = await groupApi.createPost(groupId, {
-                body: newPostContent,
+                body: JSON.stringify(editorData),
             });
             if (res.ok) {
-                newPostContent = "";
+                editorData = null;
+                renderKey++; // Reset editor
                 await loadFeed();
             } else {
                 alert("Fehler beim Erstellen des Posts");
@@ -166,18 +169,25 @@
 <div class="space-y-6">
     <!-- Post Creation -->
     <div
-        class="bg-white dark:bg-zinc-800 rounded-lg p-4 border border-zinc-200 dark:border-zinc-700 shadow-sm"
+        class="bg-white dark:bg-zinc-800 rounded-lg p-4 border border-zinc-200 dark:border-zinc-700 shadow-sm relative z-20"
     >
-        <textarea
-            bind:value={newPostContent}
-            class="w-full p-3 rounded-lg border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-blue-500 mb-3 resize-none"
-            placeholder="Schreibe etwas..."
-            rows="3"
-        ></textarea>
+        <div
+            class="mb-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-700 p-2"
+        >
+            {#key renderKey}
+                <Editor
+                    placeholder="Schreibe etwas..."
+                    onChange={(data) => (editorData = data)}
+                    class="md:pl-16"
+                />
+            {/key}
+        </div>
         <div class="flex justify-end">
             <button
                 onclick={handleCreatePost}
-                disabled={!newPostContent.trim() || creating}
+                disabled={!editorData ||
+                    editorData.blocks?.length === 0 ||
+                    creating}
                 class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
                 {#if creating}

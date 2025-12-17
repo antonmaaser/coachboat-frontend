@@ -25,6 +25,10 @@
 		"vite": "^7.2.2"
 	},
 	"dependencies": {
+		"@editorjs/editorjs": "^2.31.0",
+		"@editorjs/header": "^2.8.8",
+		"@editorjs/list": "^2.0.9",
+		"@editorjs/paragraph": "^2.11.7",
 		"lucide-svelte": "^0.556.0"
 	}
 }

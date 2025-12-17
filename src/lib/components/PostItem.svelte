@@ -1,7 +1,7 @@
 <script lang="ts">
     import { auth } from "$lib/stores/auth";
     import { MoreVertical, Pencil, Trash2 } from "lucide-svelte";
-    import TextInput from "$lib/components/ui/TextInput.svelte";
+    import Editor from "$lib/components/editor/Editor.svelte";
 
     let { post, canModerate, onDelete, onUpdate } = $props<{
         post: any;
@@ -11,22 +11,40 @@
     }>();
 
     let isEditing = $state(false);
-    let editContent = $state(post.attributes.body);
     let showMenu = $state(false);
+
+    // State to hold current editor data during edit
+    let currentEditData = $state<any>(null);
 
     const currentUser = $derived($auth.user);
     const isAuthor = $derived(
         post.attributes["created-by"] === currentUser?.id,
     );
-    const canEdit = $derived(isAuthor || canModerate); // Admins/Mods can edit? Requirements just say "edit/delete posts" for logic. Usually mods can delete, maybe edit. Let's assume mods can delete, authors can edit.
-    // Actually API schema says: PATCH /:id/posts/:postId  - Auth: ? Likely Author or Admin.
-    // Let's assume Author can edit, Mods/Admin can delete.
-
-    // For now, let's allow Mods to delete, Author to edit.
+    const canEdit = $derived(isAuthor);
     const canDelete = $derived(isAuthor || canModerate);
 
+    function parseBody(body: string) {
+        try {
+            const parsed = JSON.parse(body);
+            // Simple check to see if it looks like EditorJS data
+            if (parsed && Array.isArray(parsed.blocks)) return parsed;
+        } catch (e) {
+            // Not JSON or invalid
+        }
+        return null;
+    }
+
+    // Derived to check generic format
+    const postData = $derived(parseBody(post.attributes.body));
+
     function handleUpdate() {
-        onUpdate(post.id, editContent, post.attributes.is_pinned);
+        if (!currentEditData) {
+            // No changes or empty
+            isEditing = false;
+            return;
+        }
+        const stringified = JSON.stringify(currentEditData);
+        onUpdate(post.id, stringified, post.attributes.is_pinned);
         isEditing = false;
     }
 
@@ -37,10 +55,27 @@
             timeStyle: "short",
         }).format(new Date(dateString));
     }
+
+    function getInitialEditData() {
+        if (postData) return postData;
+        // Convert plain text to EditorJS paragraph block
+        return {
+            blocks: [
+                {
+                    type: "paragraph",
+                    data: {
+                        text: post.attributes.body,
+                    },
+                },
+            ],
+        };
+    }
 </script>
 
 <div
-    class="bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 p-4 space-y-3"
+    class="bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 p-4 space-y-3 relative {isEditing
+        ? 'z-30'
+        : 'z-0'}"
 >
     <div class="flex justify-between items-start">
         <div class="flex items-center gap-2">
@@ -97,6 +132,7 @@
                                 onclick={() => {
                                     isEditing = true;
                                     showMenu = false;
+                                    currentEditData = getInitialEditData();
                                 }}
                                 class="w-full text-left px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 flex items-center gap-2"
                             >
@@ -119,13 +155,15 @@
     </div>
 
     {#if isEditing}
-        <TextInput
-            multiline
-            rows={3}
-            bind:value={editContent}
-            class="w-full"
-            placeholder="Deinen Post bearbeiten..."
-        />
+        <div
+            class="border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 bg-zinc-50 dark:bg-zinc-900"
+        >
+            <Editor
+                data={getInitialEditData()}
+                onChange={(data) => (currentEditData = data)}
+                placeholder="Post bearbeiten..."
+            />
+        </div>
         <div class="flex justify-end gap-2">
             <button
                 onclick={() => (isEditing = false)}
@@ -141,8 +179,12 @@
             </button>
         </div>
     {:else}
-        <p class="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap">
-            {post.attributes.body}
-        </p>
+        <div class="text-sm text-zinc-700 dark:text-zinc-300">
+            {#if postData}
+                <Editor data={postData} readOnly={true} />
+            {:else}
+                <p class="whitespace-pre-wrap">{post.attributes.body}</p>
+            {/if}
+        </div>
     {/if}
 </div>
