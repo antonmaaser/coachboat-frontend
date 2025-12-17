@@ -3,6 +3,7 @@
     import { auth } from "$lib/stores/auth";
     import { Loader2, CheckCircle2, AlertCircle } from "lucide-svelte";
     import ResourceCategories from "$lib/components/ResourceCategories.svelte";
+    import TextInput from "$lib/components/ui/TextInput.svelte";
 
     let oldPassword = $state("");
     let newPassword = $state("");
@@ -96,34 +97,24 @@
             {/if}
 
             <div>
-                <label
-                    for="newPassword"
-                    class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1"
-                    >Neues Passwort</label
-                >
-                <input
-                    type="password"
+                <TextInput
                     id="newPassword"
+                    type="password"
+                    label="Neues Passwort"
                     bind:value={newPassword}
                     required
-                    minlength="8"
-                    class="w-full rounded-lg border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
+                    minlength={8}
                 />
             </div>
 
             <div>
-                <label
-                    for="confirmPassword"
-                    class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1"
-                    >Passwort bestätigen</label
-                >
-                <input
-                    type="password"
+                <TextInput
                     id="confirmPassword"
+                    type="password"
+                    label="Passwort bestätigen"
                     bind:value={confirmPassword}
                     required
-                    minlength="8"
-                    class="w-full rounded-lg border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
+                    minlength={8}
                 />
             </div>
 

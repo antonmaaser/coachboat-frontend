@@ -5,6 +5,7 @@
   import { Loader2, KeyRound, CheckCircle2, AlertCircle } from "lucide-svelte";
   import { onMount } from "svelte";
   import { AUTH_BASE } from "$lib/config";
+  import TextInput from "$lib/components/ui/TextInput.svelte";
 
   let token = $state("");
   let password = $state("");
@@ -117,58 +118,36 @@
 
         <div class="space-y-4">
           <div>
-            <label
-              for="token"
-              class="block text-sm font-medium leading-6 text-zinc-900 dark:text-white"
-              >Aktivierungs Token</label
-            >
-            <div class="mt-2">
-              <input
-                id="token"
-                name="token"
-                type="text"
-                required
-                bind:value={token}
-                class="block w-full rounded-lg border-0 bg-zinc-50 dark:bg-zinc-900/50 py-3 text-zinc-900 dark:text-white ring-1 ring-inset ring-zinc-200 dark:ring-zinc-700 placeholder:text-zinc-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
-                placeholder="Falls nicht automatisch eingegeben, hier Token einfügen"
-              />
-            </div>
+            <TextInput
+              id="token"
+              name="token"
+              label="Aktivierungs Token"
+              required
+              bind:value={token}
+              placeholder="Falls nicht automatisch eingegeben, hier Token einfügen"
+            />
           </div>
 
           <div>
-            <label
-              for="password"
-              class="block text-sm font-medium leading-6 text-zinc-900 dark:text-white"
-              >Neues Passwort</label
-            >
-            <div class="mt-2">
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                bind:value={password}
-                class="block w-full rounded-lg border-0 bg-zinc-50 dark:bg-zinc-900/50 py-3 text-zinc-900 dark:text-white ring-1 ring-inset ring-zinc-200 dark:ring-zinc-700 placeholder:text-zinc-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
-              />
-            </div>
+            <TextInput
+              id="password"
+              name="password"
+              type="password"
+              label="Neues Passwort"
+              required
+              bind:value={password}
+            />
           </div>
 
           <div>
-            <label
-              for="rePassword"
-              class="block text-sm font-medium leading-6 text-zinc-900 dark:text-white"
-              >Passwort bestätigen</label
-            >
-            <div class="mt-2">
-              <input
-                id="rePassword"
-                name="rePassword"
-                type="password"
-                required
-                bind:value={rePassword}
-                class="block w-full rounded-lg border-0 bg-zinc-50 dark:bg-zinc-900/50 py-3 text-zinc-900 dark:text-white ring-1 ring-inset ring-zinc-200 dark:ring-zinc-700 placeholder:text-zinc-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
-              />
-            </div>
+            <TextInput
+              id="rePassword"
+              name="rePassword"
+              type="password"
+              label="Passwort bestätigen"
+              required
+              bind:value={rePassword}
+            />
           </div>
         </div>
 

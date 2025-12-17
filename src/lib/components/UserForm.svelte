@@ -1,6 +1,7 @@
 <script lang="ts">
     import { userApi, type UserAttributes } from "$lib/api/users";
     import { Loader2 } from "lucide-svelte";
+    import TextInput from "$lib/components/ui/TextInput.svelte";
 
     let { user = undefined, onSuccess } = $props<{
         user?: { id: string; attributes: UserAttributes };
@@ -84,63 +85,36 @@
 
     <div class="grid grid-cols-2 gap-4">
         <div>
-            <label
-                for="firstName"
-                class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1"
-                >First Name</label
-            >
-            <input
-                type="text"
+            <TextInput
                 id="firstName"
+                label="First Name"
                 bind:value={firstName}
                 required
-                class="w-full rounded-lg border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
             />
         </div>
         <div>
-            <label
-                for="name"
-                class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1"
-                >Last Name</label
-            >
-            <input
-                type="text"
-                id="name"
-                bind:value={name}
-                required
-                class="w-full rounded-lg border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
-            />
+            <TextInput id="name" label="Last Name" bind:value={name} required />
         </div>
     </div>
 
     <div>
-        <label
-            for="email"
-            class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1"
-            >Email</label
-        >
-        <input
-            type="email"
+        <TextInput
             id="email"
+            type="email"
+            label="Email"
             bind:value={email}
             required
-            class="w-full rounded-lg border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
         />
     </div>
 
     {#if !user?.id}
         <div>
-            <label
-                for="password"
-                class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1"
-                >Initial Password</label
-            >
-            <input
-                type="password"
+            <TextInput
                 id="password"
+                type="password"
+                label="Initial Password"
                 bind:value={password}
                 placeholder="Leave blank for default"
-                class="w-full rounded-lg border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
             />
             <p class="text-xs text-zinc-500 mt-1">Default: ChangeMe123!</p>
         </div>

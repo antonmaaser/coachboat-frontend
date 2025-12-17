@@ -1,0 +1,298 @@
+<script lang="ts">
+    import { groupApi } from "$lib/api/groups";
+    import { auth } from "$lib/stores/auth";
+    import Modal from "$lib/components/Modal.svelte";
+    import GroupForm from "$lib/components/GroupForm.svelte";
+    import {
+        Users,
+        Plus,
+        MoreVertical,
+        Pencil,
+        Trash2,
+        Eye,
+        EyeOff,
+        Shield,
+        UserPlus,
+    } from "lucide-svelte";
+    import GroupMembersModal from "$lib/components/GroupMembersModal.svelte";
+    import { onMount } from "svelte";
+
+    let groups = $state<any[]>([]);
+    let loading = $state(true);
+
+    let showModal = $state(false);
+    let editingGroup = $state<any>(undefined);
+    let activeMenu = $state<string | null>(null);
+
+    let showMembersModal = $state(false);
+    let selectedGroupForMembers = $state<any>(undefined);
+
+    async function loadGroups() {
+        loading = true;
+        try {
+            const res = await groupApi.list();
+            if (res.ok) {
+                const json = await res.json();
+                groups = json.data || json;
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            loading = false;
+        }
+    }
+
+    function openCreateModal() {
+        editingGroup = undefined;
+        showModal = true;
+    }
+
+    function openEditModal(group: any) {
+        editingGroup = group;
+        showModal = true;
+    }
+
+    async function handleDeleteGroup(group: any) {
+        if (
+            !confirm(
+                `Are you sure you want to delete group "${group.attributes.title}"?`,
+            )
+        )
+            return;
+
+        try {
+            const res = await groupApi.delete(group.id);
+            if (res.ok) {
+                loadGroups();
+            } else {
+                alert("Failed to delete group");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error deleting group");
+        }
+    }
+
+    function handleSuccess() {
+        showModal = false;
+        loadGroups();
+    }
+
+    onMount(() => {
+        loadGroups();
+    });
+
+    function getVisibilityBadge(visibility: string) {
+        switch (visibility) {
+            case "all":
+                return {
+                    label: "Für Alle",
+                    color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
+                    icon: Eye,
+                };
+            case "admin":
+                return {
+                    label: "Admins",
+                    color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
+                    icon: Shield,
+                };
+            case "none":
+                return {
+                    label: "Nicht sichtbar",
+                    color: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-400",
+                    icon: EyeOff,
+                };
+            default:
+                return {
+                    label: visibility,
+                    color: "bg-gray-100 text-gray-700",
+                    icon: Eye,
+                };
+        }
+    }
+
+    const isAdmin = $derived($auth.user?.status && $auth.user.status >= 3);
+</script>
+
+<div class="space-y-6">
+    <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+        <h1
+            class="text-2xl font-bold text-zinc-900 dark:text-white w-full md:w-auto"
+        >
+            Gruppen
+        </h1>
+
+        {#if isAdmin}
+            <button
+                onclick={openCreateModal}
+                class="w-full md:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-blue-600/20"
+            >
+                <Plus class="w-5 h-5" />
+                Gruppe erstellen
+            </button>
+        {/if}
+    </div>
+
+    <div
+        class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden"
+    >
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead
+                    class="bg-zinc-50 dark:bg-zinc-900/50 text-zinc-500 dark:text-zinc-400 font-medium border-b border-zinc-200 dark:border-zinc-700"
+                >
+                    <tr>
+                        <th class="px-6 py-4">Name</th>
+                        <th class="px-6 py-4">Beschreibung</th>
+                        <th class="px-6 py-4">Sichtbarkeit</th>
+                        <th class="px-6 py-4 text-right">Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-zinc-100 dark:divide-zinc-700/50">
+                    {#if loading}
+                        <tr
+                            ><td colspan="4" class="p-8 text-center">Lädt...</td
+                            ></tr
+                        >
+                    {:else if groups.length === 0}
+                        <tr
+                            ><td
+                                colspan="4"
+                                class="p-8 text-center text-zinc-500"
+                                >Keine Gruppen gefunden.</td
+                            ></tr
+                        >
+                    {:else}
+                        {#each groups as group}
+                            {@const attrs = group.attributes}
+                            {@const badge = getVisibilityBadge(
+                                attrs.visibility,
+                            )}
+                            <tr
+                                class="hover:bg-zinc-50 dark:hover:bg-zinc-700/20 transition-colors group"
+                            >
+                                <td
+                                    class="px-6 py-4 font-medium text-zinc-900 dark:text-white"
+                                >
+                                    <a
+                                        href="/groups/{group.id}"
+                                        class="hover:underline hover:text-blue-600 dark:hover:text-blue-400"
+                                    >
+                                        {attrs.title}
+                                    </a>
+                                </td>
+                                <td
+                                    class="px-6 py-4 text-zinc-600 dark:text-zinc-400 max-w-xs truncate"
+                                >
+                                    {attrs.description || "-"}
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span
+                                        class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium {badge.color}"
+                                    >
+                                        <badge.icon class="w-3 h-3" />
+                                        {badge.label}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    {#if isAdmin}
+                                        <div
+                                            class="relative inline-block text-left"
+                                        >
+                                            <button
+                                                onclick={() =>
+                                                    (activeMenu =
+                                                        activeMenu === group.id
+                                                            ? null
+                                                            : group.id)}
+                                                class="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                                            >
+                                                <MoreVertical class="w-5 h-5" />
+                                            </button>
+
+                                            {#if activeMenu === group.id}
+                                                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                                                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                                                <div
+                                                    class="fixed inset-0 z-10"
+                                                    onclick={() =>
+                                                        (activeMenu = null)}
+                                                ></div>
+                                                <div
+                                                    class="absolute right-0 z-20 mt-2 w-48 bg-white dark:bg-zinc-800 rounded-lg shadow-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden transform origin-top-right transition-all"
+                                                >
+                                                    <button
+                                                        onclick={() => {
+                                                            activeMenu = null;
+                                                            openEditModal(
+                                                                group,
+                                                            );
+                                                        }}
+                                                        class="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2"
+                                                    >
+                                                        <Pencil
+                                                            class="w-4 h-4"
+                                                        />
+                                                        Bearbeiten
+                                                    </button>
+                                                    <button
+                                                        onclick={() => {
+                                                            activeMenu = null;
+                                                            selectedGroupForMembers =
+                                                                group;
+                                                            showMembersModal = true;
+                                                        }}
+                                                        class="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2"
+                                                    >
+                                                        <UserPlus
+                                                            class="w-4 h-4"
+                                                        />
+                                                        Mitglieder
+                                                    </button>
+                                                    <button
+                                                        onclick={() => {
+                                                            activeMenu = null;
+                                                            handleDeleteGroup(
+                                                                group,
+                                                            );
+                                                        }}
+                                                        class="w-full text-left px-4 py-3 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm text-red-600 dark:text-red-400 flex items-center gap-2 border-t border-zinc-100 dark:border-zinc-700"
+                                                    >
+                                                        <Trash2
+                                                            class="w-4 h-4"
+                                                        />
+                                                        Löschen
+                                                    </button>
+                                                </div>
+                                            {/if}
+                                        </div>
+                                    {:else}
+                                        <span class="text-zinc-400 text-xs"
+                                            >Nur lesend</span
+                                        >
+                                    {/if}
+                                </td>
+                            </tr>
+                        {/each}
+                    {/if}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <Modal
+        bind:show={showModal}
+        title={editingGroup ? "Gruppe bearbeiten" : "Gruppe erstellen"}
+    >
+        {#key editingGroup?.id || "new"}
+            <GroupForm group={editingGroup} onSuccess={handleSuccess} />
+        {/key}
+    </Modal>
+
+    {#if showMembersModal && selectedGroupForMembers}
+        <GroupMembersModal
+            group={selectedGroupForMembers}
+            bind:show={showMembersModal}
+        />
+    {/if}
+</div>

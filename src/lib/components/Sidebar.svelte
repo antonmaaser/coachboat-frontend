@@ -102,6 +102,18 @@
             Materialien
         </a>
 
+        <a
+            href="/groups"
+            onclick={close}
+            class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium
+        {isActive('/groups', $page.url.pathname)
+                ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 hover:text-zinc-900 dark:hover:text-zinc-200'}"
+        >
+            <Users class="w-5 h-5" />
+            Gruppen
+        </a>
+
         {#if $auth.user && $auth.user.status && $auth.user.status >= 3}
             <div class="pt-4 pb-2">
                 <p

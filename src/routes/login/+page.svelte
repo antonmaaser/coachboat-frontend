@@ -4,6 +4,7 @@
     import { goto } from "$app/navigation";
     import { Loader2, Mail, Lock, AlertCircle } from "lucide-svelte";
     import { AUTH_BASE } from "$lib/config";
+    import TextInput from "$lib/components/ui/TextInput.svelte";
 
     let email = $state("");
     let password = $state("");
@@ -110,45 +111,27 @@
             {/if}
 
             <div class="space-y-4">
-                <div>
-                    <label for="email" class="sr-only">E-Mail Adresse</label>
-                    <div class="relative">
-                        <div
-                            class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400"
-                        >
-                            <Mail class="h-5 w-5" />
-                        </div>
-                        <input
-                            id="email"
-                            name="email"
-                            type="email"
-                            required
-                            bind:value={email}
-                            class="block w-full rounded-lg border-0 bg-zinc-50 dark:bg-zinc-900/50 py-3 pl-10 text-zinc-900 dark:text-white ring-1 ring-inset ring-zinc-200 dark:ring-zinc-700 placeholder:text-zinc-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 transition-all"
-                            placeholder="E-Mail Adresse"
-                        />
-                    </div>
-                </div>
+                <TextInput
+                    id="email"
+                    name="email"
+                    type="email"
+                    label="E-Mail Adresse"
+                    required
+                    bind:value={email}
+                    placeholder="E-Mail Adresse"
+                    icon={Mail}
+                />
 
-                <div>
-                    <label for="password" class="sr-only">Password</label>
-                    <div class="relative">
-                        <div
-                            class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400"
-                        >
-                            <Lock class="h-5 w-5" />
-                        </div>
-                        <input
-                            id="password"
-                            name="password"
-                            type="password"
-                            required
-                            bind:value={password}
-                            class="block w-full rounded-lg border-0 bg-zinc-50 dark:bg-zinc-900/50 py-3 pl-10 text-zinc-900 dark:text-white ring-1 ring-inset ring-zinc-200 dark:ring-zinc-700 placeholder:text-zinc-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 transition-all"
-                            placeholder="Passwort"
-                        />
-                    </div>
-                </div>
+                <TextInput
+                    id="password"
+                    name="password"
+                    type="password"
+                    label="Passwort"
+                    required
+                    bind:value={password}
+                    placeholder="Passwort"
+                    icon={Lock}
+                />
             </div>
 
             <div>

@@ -2,6 +2,7 @@
     import { resourceApi, type ResourceAttributes } from "$lib/api/resources";
     import { resourceCategoryApi } from "$lib/api/resource-categories";
     import { Loader2 } from "lucide-svelte";
+    import TextInput from "$lib/components/ui/TextInput.svelte";
     import { onMount } from "svelte";
 
     let { resource = undefined, onSuccess } = $props<{
@@ -88,21 +89,13 @@
         </div>
     {/if}
 
-    <div>
-        <label
-            for="title"
-            class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1"
-            >Titel</label
-        >
-        <input
-            type="text"
-            id="title"
-            bind:value={title}
-            required
-            class="w-full rounded-lg border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
-            placeholder="e.g. Coach Boat 1"
-        />
-    </div>
+    <TextInput
+        id="title"
+        label="Titel"
+        bind:value={title}
+        required
+        placeholder="e.g. Coach Boat 1"
+    />
 
     <div>
         <label
@@ -122,20 +115,14 @@
         </select>
     </div>
 
-    <div>
-        <label
-            for="description"
-            class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1"
-            >Beschreibung</label
-        >
-        <textarea
-            id="description"
-            bind:value={description}
-            rows="3"
-            class="w-full rounded-lg border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Optional description..."
-        ></textarea>
-    </div>
+    <TextInput
+        id="description"
+        label="Beschreibung"
+        bind:value={description}
+        multiline
+        rows={3}
+        placeholder="Optional description..."
+    />
 
     <div class="flex items-center gap-6">
         <label class="flex items-center gap-2 cursor-pointer">
