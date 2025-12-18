@@ -7,6 +7,10 @@ export interface EventAttributes {
     'end-date': number; // Seconds from midnight
     resource?: string;
     description?: string;
+    'is-recurring'?: boolean;
+    'recurrence-freq'?: 'daily' | 'weekly' | 'monthly' | 'yearly';
+    'recurrence-interval'?: number;
+    'recurrence-end-date'?: string;
 }
 
 export const eventApi = {

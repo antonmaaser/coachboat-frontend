@@ -8,7 +8,7 @@ export default defineConfig({
 		port: 4200,
 		proxy: {
 			'/api': {
-				target: 'https://api.coachboat-planer.de',
+				target: 'http://localhost:3000',
 				changeOrigin: true,
 				secure: false,
 				rewrite: (path) => path.replace(/^\/api/, '')

@@ -1,6 +1,7 @@
 <script lang="ts">
     import { auth } from "$lib/stores/auth";
     import TodoList from "$lib/components/TodoList.svelte";
+    import { Calendar, DraftingCompass, Users } from "lucide-svelte";
 </script>
 
 <div class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -73,15 +74,24 @@
             <div class="mt-4 space-y-2">
                 <a
                     href="/events"
-                    class="block bg-white/10 hover:bg-white/20 transition-colors px-3 py-2 rounded-lg text-sm font-medium text-white"
+                    class="flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-colors px-3 py-2 rounded-lg text-sm font-medium text-white"
                 >
+                    <Calendar class="w-4 h-4" />
                     Kalender anschauen
                 </a>
                 <a
                     href="/resources"
-                    class="block bg-white/10 hover:bg-white/20 transition-colors px-3 py-2 rounded-lg text-sm font-medium text-white"
+                    class="flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-colors px-3 py-2 rounded-lg text-sm font-medium text-white"
                 >
+                    <DraftingCompass class="w-4 h-4" />
                     Boot buchen
+                </a>
+                <a
+                    href="/groups"
+                    class="flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-colors px-3 py-2 rounded-lg text-sm font-medium text-white"
+                >
+                    <Users class="w-4 h-4" />
+                    Gruppen verwalten
                 </a>
             </div>
         </div>

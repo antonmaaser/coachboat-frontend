@@ -2,6 +2,7 @@
     import { userApi, type UserAttributes } from "$lib/api/users";
     import { Loader2 } from "lucide-svelte";
     import TextInput from "$lib/components/ui/TextInput.svelte";
+    import SearchableSelect from "$lib/components/ui/SearchableSelect.svelte";
 
     let { user = undefined, onSuccess } = $props<{
         user?: { id: string; attributes: UserAttributes };
@@ -12,13 +13,13 @@
     let firstName = $state("");
     let email = $state("");
     let password = $state(""); // Only for creation/reset if needed, but simplified for now
-    let status = $state(1); // Default to Active (1)
+    let status = $state("1"); // Default to Active ("1")
 
     $effect(() => {
         name = user?.attributes.name || "";
         firstName = user?.attributes["first-name"] || "";
         email = user?.attributes.email || "";
-        status = user?.attributes.status ?? 1;
+        status = (user?.attributes.status ?? 1).toString();
         // Password usually doesn't need to be reset from user prop on edit
     });
 
@@ -35,7 +36,7 @@
                 name,
                 "first-name": firstName,
                 email,
-                status,
+                status: Number(status),
             };
 
             if (!user?.id && password) {
@@ -121,20 +122,16 @@
     {/if}
 
     <div>
-        <label
-            for="status"
-            class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1"
-            >Status</label
-        >
-        <select
-            id="status"
+        <SearchableSelect
+            label="Status"
             bind:value={status}
-            class="w-full rounded-lg border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
-        >
-            <option value={0}>Inactive</option>
-            <option value={1}>Active</option>
-            <option value={3}>Admin</option>
-        </select>
+            options={[
+                { value: "0", label: "Inactive" },
+                { value: "1", label: "Active" },
+                { value: "3", label: "Admin" },
+            ]}
+            searchable={false}
+        />
     </div>
 
     <div class="pt-2">

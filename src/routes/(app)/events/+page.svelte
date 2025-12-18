@@ -14,6 +14,7 @@
     import * as Icons from "lucide-svelte";
     import { onMount } from "svelte";
     import Modal from "$lib/components/Modal.svelte";
+    import SearchableSelect from "$lib/components/ui/SearchableSelect.svelte";
 
     let currentDate = $state(new Date());
     let events = $state<any[]>([]);
@@ -153,7 +154,8 @@
     let canEdit = $derived(
         $auth.user &&
             selectedUser &&
-            ($auth.user.status >= 3 || $auth.user.id === selectedUser.id),
+            (($auth.user.status || 0) >= 3 ||
+                $auth.user?.id === selectedUser.id),
     );
 
     function formatDate(dateStr: string) {
@@ -226,6 +228,10 @@
         startTime: "08:00",
         endTime: "10:00",
         resource: "",
+        isRecurring: false,
+        recurrenceFreq: "daily",
+        recurrenceInterval: 1,
+        recurrenceEndDate: "",
     });
 
     function handleEdit() {
@@ -238,6 +244,14 @@
             startTime: formatSeconds(selectedEvent.attributes["start-date"]),
             endTime: formatSeconds(selectedEvent.attributes["end-date"]),
             resource: selectedEvent.attributes.resource,
+            isRecurring: selectedEvent.attributes["is-recurring"] || false,
+            recurrenceFreq:
+                selectedEvent.attributes["recurrence-freq"] || "daily",
+            recurrenceInterval:
+                selectedEvent.attributes["recurrence-interval"] || 1,
+            recurrenceEndDate: selectedEvent.attributes["recurrence-end-date"]
+                ? selectedEvent.attributes["recurrence-end-date"].split("T")[0]
+                : "",
         };
 
         showDetailModal = false;
@@ -254,13 +268,20 @@
             const startSeconds = startH * 3600 + startM * 60;
             const endSeconds = endH * 3600 + endM * 60;
 
-            const payload = {
+            const payload: any = {
                 title: newEvent.title,
                 date: newEvent.date,
                 "start-date": startSeconds,
                 "end-date": endSeconds,
                 resource: newEvent.resource,
+                "is-recurring": newEvent.isRecurring,
             };
+
+            if (newEvent.isRecurring) {
+                payload["recurrence-freq"] = newEvent.recurrenceFreq;
+                payload["recurrence-interval"] = newEvent.recurrenceInterval;
+                payload["recurrence-end-date"] = newEvent.recurrenceEndDate;
+            }
 
             let res;
             if (editTargetId) {
@@ -279,6 +300,10 @@
                     startTime: "08:00",
                     endTime: "10:00",
                     resource: "",
+                    isRecurring: false,
+                    recurrenceFreq: "daily",
+                    recurrenceInterval: 1,
+                    recurrenceEndDate: "",
                 };
             } else {
                 alert(
@@ -303,6 +328,10 @@
             startTime: "08:00",
             endTime: "10:00",
             resource: "",
+            isRecurring: false,
+            recurrenceFreq: "daily",
+            recurrenceInterval: 1,
+            recurrenceEndDate: "",
         };
         showCreateModal = true;
     }
@@ -665,24 +694,92 @@
             </div>
         </div>
 
+        <!-- Recurring Event Options -->
+        <div
+            class="space-y-3 pt-2 border-t border-zinc-200 dark:border-zinc-700"
+        >
+            <div class="flex items-center gap-2">
+                <input
+                    type="checkbox"
+                    id="isRecurring"
+                    bind:checked={newEvent.isRecurring}
+                    class="rounded border-zinc-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                />
+                <label
+                    for="isRecurring"
+                    class="text-sm font-medium text-zinc-900 dark:text-white"
+                >
+                    Wiederkehrende Buchung
+                </label>
+            </div>
+
+            {#if newEvent.isRecurring}
+                <div
+                    class="grid grid-cols-2 gap-4 pl-6 animate-in fade-in slide-in-from-top-2"
+                >
+                    <div>
+                        <SearchableSelect
+                            label="Wiederholung"
+                            options={[
+                                { value: "daily", label: "Täglich" },
+                                { value: "weekly", label: "Wöchentlich" },
+                                { value: "monthly", label: "Monatlich" },
+                                { value: "yearly", label: "Jährlich" },
+                            ]}
+                            bind:value={newEvent.recurrenceFreq}
+                            searchable={false}
+                            placeholder="Wähle Frequenz"
+                        />
+                    </div>
+                    <div>
+                        <label
+                            for="interval"
+                            class="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1"
+                        >
+                            Intervall
+                        </label>
+                        <input
+                            type="number"
+                            id="interval"
+                            min="1"
+                            bind:value={newEvent.recurrenceInterval}
+                            class="block w-full rounded-md border-zinc-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm dark:bg-zinc-700 dark:border-zinc-600 dark:text-white p-2 border"
+                        />
+                    </div>
+                    <div class="col-span-2">
+                        <label
+                            for="endDate"
+                            class="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1"
+                        >
+                            Endet am
+                        </label>
+                        <input
+                            type="date"
+                            id="endDate"
+                            required={newEvent.isRecurring}
+                            bind:value={newEvent.recurrenceEndDate}
+                            class="block w-full rounded-md border-zinc-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm dark:bg-zinc-700 dark:border-zinc-600 dark:text-white p-2 border"
+                        />
+                    </div>
+                </div>
+            {/if}
+        </div>
+
         {#if !editTargetId}
             <div>
                 <label
                     for="resource"
-                    class="block text-sm font-medium text-zinc-900 dark:text-white"
+                    class="block text-sm font-medium text-zinc-900 dark:text-white mb-1"
                     >Coachboat</label
                 >
-                <select
-                    id="resource"
-                    required
+                <SearchableSelect
+                    options={resources.map((r) => ({
+                        value: r.id,
+                        label: r.attributes.title,
+                    }))}
                     bind:value={newEvent.resource}
-                    class="mt-1 block w-full rounded-md border-zinc-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm dark:bg-zinc-700 dark:border-zinc-600 dark:text-white p-2 border"
-                >
-                    <option value="" disabled>Select a resource</option>
-                    {#each resources as r}
-                        <option value={r.id}>{r.attributes.title}</option>
-                    {/each}
-                </select>
+                    placeholder="Coachboat auswählen..."
+                />
             </div>
         {/if}
 
@@ -746,7 +843,50 @@
                     </span>
                 </div>
             </div>
+        </div>
 
+        {#if selectedEvent.attributes["is-recurring"]}
+            <div
+                class="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-100 dark:border-blue-800"
+            >
+                <div class="flex items-center gap-2 mb-1">
+                    <Icons.Repeat
+                        class="w-4 h-4 text-blue-600 dark:text-blue-400"
+                    />
+                    <span
+                        class="text-sm font-semibold text-blue-900 dark:text-blue-100"
+                    >
+                        Wiederkehrende Buchung
+                    </span>
+                </div>
+                <p class="text-sm text-blue-800 dark:text-blue-200">
+                    Wiederholt sich
+                    {#if selectedEvent.attributes["recurrence-freq"] === "daily"}
+                        täglich
+                    {:else if selectedEvent.attributes["recurrence-freq"] === "weekly"}
+                        wöchentlich
+                    {:else if selectedEvent.attributes["recurrence-freq"] === "monthly"}
+                        monatlich
+                    {:else if selectedEvent.attributes["recurrence-freq"] === "yearly"}
+                        jährlich
+                    {/if}
+                    {#if selectedEvent.attributes["recurrence-interval"] > 1}
+                        (alle {selectedEvent.attributes["recurrence-interval"]}
+                        {#if selectedEvent.attributes["recurrence-freq"] === "daily"}Tage{/if}
+                        {#if selectedEvent.attributes["recurrence-freq"] === "weekly"}Wochen{/if}
+                        {#if selectedEvent.attributes["recurrence-freq"] === "monthly"}Monate{/if}
+                        {#if selectedEvent.attributes["recurrence-freq"] === "yearly"}Jahre{/if})
+                    {/if}
+                    {#if selectedEvent.attributes["recurrence-end-date"]}
+                        bis zum {formatDate(
+                            selectedEvent.attributes["recurrence-end-date"],
+                        )}
+                    {/if}
+                </p>
+            </div>
+        {/if}
+
+        <div>
             <div>
                 <span
                     class="block text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase mb-1"

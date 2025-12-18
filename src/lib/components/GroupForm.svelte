@@ -2,6 +2,7 @@
     import { groupApi, type GroupAttributes } from "$lib/api/groups";
     import { Loader2 } from "lucide-svelte";
     import TextInput from "$lib/components/ui/TextInput.svelte";
+    import SearchableSelect from "$lib/components/ui/SearchableSelect.svelte";
 
     let { group = undefined, onSuccess } = $props<{
         group?: { id: string; attributes: GroupAttributes };
@@ -10,7 +11,7 @@
 
     let title = $state("");
     let description = $state("");
-    let visibility = $state<"all" | "admin" | "none">("all");
+    let visibility = $state("all");
 
     $effect(() => {
         title = group?.attributes.title || "";
@@ -30,7 +31,7 @@
             const attributes: Partial<GroupAttributes> = {
                 title,
                 description,
-                visibility,
+                visibility: visibility as "all" | "admin" | "none",
             };
 
             let res;
@@ -76,20 +77,16 @@
     />
 
     <div>
-        <label
-            for="visibility"
-            class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1"
-            >Visibility</label
-        >
-        <select
-            id="visibility"
+        <SearchableSelect
+            label="Visibility"
             bind:value={visibility}
-            class="w-full rounded-lg border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
-        >
-            <option value="all">All</option>
-            <option value="admin">Admin</option>
-            <option value="none">None</option>
-        </select>
+            options={[
+                { value: "all", label: "All" },
+                { value: "admin", label: "Admin" },
+                { value: "none", label: "None" },
+            ]}
+            searchable={false}
+        />
     </div>
 
     <div class="pt-2">

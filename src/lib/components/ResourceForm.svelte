@@ -3,6 +3,7 @@
     import { resourceCategoryApi } from "$lib/api/resource-categories";
     import { Loader2 } from "lucide-svelte";
     import TextInput from "$lib/components/ui/TextInput.svelte";
+    import SearchableSelect from "$lib/components/ui/SearchableSelect.svelte";
     import { onMount } from "svelte";
 
     let { resource = undefined, onSuccess } = $props<{
@@ -98,21 +99,18 @@
     />
 
     <div>
-        <label
-            for="category"
-            class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1"
-            >Kategorie</label
-        >
-        <select
-            id="category"
+        <SearchableSelect
+            label="Kategorie"
             bind:value={categoryId}
-            class="w-full rounded-lg border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
-        >
-            <option value="">Keine Kategorie</option>
-            {#each categories as cat}
-                <option value={cat.id}>{cat.attributes.title}</option>
-            {/each}
-        </select>
+            options={[
+                { value: "", label: "Keine Kategorie" },
+                ...categories.map((cat) => ({
+                    value: cat.id,
+                    label: cat.attributes.title,
+                })),
+            ]}
+            placeholder="Wähle eine Kategorie..."
+        />
     </div>
 
     <TextInput
