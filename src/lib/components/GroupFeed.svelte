@@ -181,13 +181,12 @@
         class="bg-white dark:bg-zinc-800 rounded-lg p-4 border border-zinc-200 dark:border-zinc-700 shadow-sm relative z-20"
     >
         <div
-            class="mb-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-700 p-2"
+            class="mb-3 block w-full rounded-lg border-0 bg-zinc-50 dark:bg-zinc-900/50 text-zinc-900 dark:text-white ring-1 ring-inset ring-zinc-200 dark:ring-zinc-700 focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-600 sm:text-sm sm:leading-6 px-3 py-2 transition-all"
         >
             {#key renderKey}
                 <Editor
                     placeholder="Schreibe etwas..."
                     onChange={(data) => (editorData = data)}
-                    class="md:pl-16"
                 />
             {/key}
         </div>

@@ -180,4 +180,56 @@
     :global(.dark .editor-js-container a) {
         color: #60a5fa;
     }
+
+    /* Tooltip styling for EditorJS toolbar actions */
+    :global(.ce-toolbar__actions) {
+        background-color: white;
+        border-radius: 0.5rem; /* rounded-lg */
+        box-shadow:
+            0 4px 6px -1px rgb(0 0 0 / 0.1),
+            0 2px 4px -2px rgb(0 0 0 / 0.1);
+        border: 1px solid #e4e4e7; /* zinc-200 */
+        padding: 3px;
+        transform: translate(-12px, -6px);
+    }
+
+    :global(.dark .ce-toolbar__actions) {
+        background-color: #27272a; /* zinc-800 */
+        border-color: #3f3f46; /* zinc-700 */
+        box-shadow:
+            0 4px 6px -1px rgb(0 0 0 / 0.5),
+            0 2px 4px -2px rgb(0 0 0 / 0.3);
+    }
+
+    /* Adjust individual buttons inside the pill */
+    :global(.ce-toolbar__plus),
+    :global(.ce-toolbar__settings-btn) {
+        border-radius: 0.5rem; /* rounded-lg */
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #52525b; /* zinc-600 */
+        transition:
+            background-color 0.2s,
+            color 0.2s;
+    }
+
+    :global(.dark .ce-toolbar__plus),
+    :global(.dark .ce-toolbar__settings-btn) {
+        color: #a1a1aa; /* zinc-400 */
+    }
+
+    :global(.ce-toolbar__plus:hover),
+    :global(.ce-toolbar__settings-btn:hover) {
+        background-color: #f4f4f5; /* zinc-100 */
+        color: #18181b; /* zinc-900 */
+    }
+
+    :global(.dark .ce-toolbar__plus:hover),
+    :global(.dark .ce-toolbar__settings-btn:hover) {
+        background-color: #3f3f46; /* zinc-700 */
+        color: #fff;
+    }
 </style>

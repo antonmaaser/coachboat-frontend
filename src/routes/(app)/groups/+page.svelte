@@ -195,32 +195,53 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-right">
-                                    {#if isAdmin}
-                                        <div
-                                            class="relative inline-block text-left"
+                                    <div
+                                        class="relative inline-block text-left"
+                                    >
+                                        <button
+                                            onclick={() =>
+                                                (activeMenu =
+                                                    activeMenu === group.id
+                                                        ? null
+                                                        : group.id)}
+                                            class="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
                                         >
-                                            <button
-                                                onclick={() =>
-                                                    (activeMenu =
-                                                        activeMenu === group.id
-                                                            ? null
-                                                            : group.id)}
-                                                class="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
-                                            >
-                                                <MoreVertical class="w-5 h-5" />
-                                            </button>
+                                            <MoreVertical class="w-5 h-5" />
+                                        </button>
 
-                                            {#if activeMenu === group.id}
-                                                <!-- svelte-ignore a11y_click_events_have_key_events -->
-                                                <!-- svelte-ignore a11y_no_static_element_interactions -->
-                                                <div
-                                                    class="fixed inset-0 z-10"
+                                        {#if activeMenu === group.id}
+                                            <!-- svelte-ignore a11y_click_events_have_key_events -->
+                                            <!-- svelte-ignore a11y_no_static_element_interactions -->
+                                            <div
+                                                class="fixed inset-0 z-10"
+                                                onclick={() =>
+                                                    (activeMenu = null)}
+                                            ></div>
+                                            <div
+                                                class="absolute right-0 z-20 mt-2 w-48 bg-white dark:bg-zinc-800 rounded-lg shadow-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden transform origin-top-right transition-all"
+                                            >
+                                                <a
+                                                    href="/groups/{group.id}"
                                                     onclick={() =>
                                                         (activeMenu = null)}
-                                                ></div>
-                                                <div
-                                                    class="absolute right-0 z-20 mt-2 w-48 bg-white dark:bg-zinc-800 rounded-lg shadow-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden transform origin-top-right transition-all"
+                                                    class="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2"
                                                 >
+                                                    <Eye class="w-4 h-4" />
+                                                    Öffnen
+                                                </a>
+                                                <button
+                                                    onclick={() => {
+                                                        activeMenu = null;
+                                                        selectedGroupForMembers =
+                                                            group;
+                                                        showMembersModal = true;
+                                                    }}
+                                                    class="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2"
+                                                >
+                                                    <UserPlus class="w-4 h-4" />
+                                                    Mitglieder
+                                                </button>
+                                                {#if isAdmin}
                                                     <button
                                                         onclick={() => {
                                                             activeMenu = null;
@@ -228,7 +249,7 @@
                                                                 group,
                                                             );
                                                         }}
-                                                        class="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2"
+                                                        class="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2 border-t border-zinc-100 dark:border-zinc-700"
                                                     >
                                                         <Pencil
                                                             class="w-4 h-4"
@@ -238,39 +259,21 @@
                                                     <button
                                                         onclick={() => {
                                                             activeMenu = null;
-                                                            selectedGroupForMembers =
-                                                                group;
-                                                            showMembersModal = true;
-                                                        }}
-                                                        class="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2"
-                                                    >
-                                                        <UserPlus
-                                                            class="w-4 h-4"
-                                                        />
-                                                        Mitglieder
-                                                    </button>
-                                                    <button
-                                                        onclick={() => {
-                                                            activeMenu = null;
                                                             handleDeleteGroup(
                                                                 group,
                                                             );
                                                         }}
-                                                        class="w-full text-left px-4 py-3 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm text-red-600 dark:text-red-400 flex items-center gap-2 border-t border-zinc-100 dark:border-zinc-700"
+                                                        class="w-full text-left px-4 py-3 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm text-red-600 dark:text-red-400 flex items-center gap-2"
                                                     >
                                                         <Trash2
                                                             class="w-4 h-4"
                                                         />
                                                         Löschen
                                                     </button>
-                                                </div>
-                                            {/if}
-                                        </div>
-                                    {:else}
-                                        <span class="text-zinc-400 text-xs"
-                                            >Nur lesend</span
-                                        >
-                                    {/if}
+                                                {/if}
+                                            </div>
+                                        {/if}
+                                    </div>
                                 </td>
                             </tr>
                         {/each}

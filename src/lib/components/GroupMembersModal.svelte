@@ -41,45 +41,87 @@
             // Adjusting based on common patterns: fetching group often includes relationships.
             // If not, we might need a separate endpoint, but none is documented.
 
-            // We also need all users for the dropdown
-            const [groupRes, usersRes] = await Promise.all([
-                groupApi.get(group.id),
-                userApi.list(),
-            ]);
-
-            if (groupRes.ok && usersRes.ok) {
-                const groupJson = await groupRes.json();
-                const usersJson = await usersRes.json();
-
-                allUsers = usersJson.data || usersJson;
-
-                // Process members from group response
-                // Based on the provided structure: data.attributes.members array
-                const groupMembers = groupJson.data?.attributes?.members || [];
-
-                if (groupMembers.length > 0) {
-                    members = groupMembers
-                        .map((m: any) => {
-                            // Find the user details from allUsers
-                            // Note: member object has 'id' which is likely a number, user.id is string
-                            const user = allUsers.find(
-                                (u: any) => u.id == m.id,
-                            );
-
-                            if (user) {
-                                return {
-                                    ...user,
-                                    groupRole: m.role, // Allow null
-                                };
-                            }
-                            // Handle case where user is not found in allUsers? (Maybe deleted or not loaded)
-                            return null;
-                        })
-                        .filter(Boolean); // Filter out nulls
+            // Fetch group details and users separately to handle permissions
+            let groupJson;
+            try {
+                const groupRes = await groupApi.get(group.id);
+                if (groupRes.ok) {
+                    groupJson = await groupRes.json();
                 } else {
-                    members = [];
+                    throw new Error("Failed to load group details");
                 }
+            } catch (e) {
+                console.error("Group fetch error:", e);
+                error = "Failed to load group details";
+                return;
             }
+
+            // Try to fetch all users, but don't fail if it fails (admin only?)
+            try {
+                const usersRes = await userApi.list();
+                if (usersRes.ok) {
+                    const usersJson = await usersRes.json();
+                    allUsers = usersJson.data || usersJson;
+                }
+            } catch (e) {
+                console.warn(
+                    "Could not load all users (likely permission issue):",
+                    e,
+                );
+                allUsers = [];
+            }
+
+            // Process members from group response
+            const groupMembers = groupJson.data?.attributes?.members || [];
+
+            // If we couldn't get all users via bulk list, we might need to fetch them individually
+            // This is "N+1" queryish but necessary if non-admins can't list all users but can see group members
+            const memberPromises = groupMembers.map(async (m: any) => {
+                // 1. Check if we already have it from allUsers
+                const fromAll = allUsers.find((u: any) => u.id == m.id);
+                if (fromAll) {
+                    return { ...fromAll, groupRole: m.role };
+                }
+
+                // 2. Check if the group response included enough info (unlikely for standard JSON:API but possible)
+                if (m.name && m.email) {
+                    return {
+                        id: m.id,
+                        attributes: {
+                            name: m.name,
+                            "first-name": m.first_name || "",
+                            email: m.email,
+                        },
+                        groupRole: m.role,
+                    };
+                }
+
+                // 3. Try to fetch this specific user details
+                try {
+                    const res = await userApi.get(m.id);
+                    if (res.ok) {
+                        const json = await res.json();
+                        const u = json.data || json;
+                        return { ...u, groupRole: m.role };
+                    }
+                } catch (e) {
+                    /* ignore */
+                }
+
+                // 4. Fallback
+                return {
+                    id: m.id,
+                    attributes: {
+                        name: "Nutzer",
+                        "first-name": "Unbekannter",
+                        email: `ID: ${m.id}`,
+                    },
+                    groupRole: m.role,
+                };
+            });
+
+            const resolvedMembers = await Promise.all(memberPromises);
+            members = resolvedMembers.filter(Boolean);
         } catch (e: any) {
             console.error(e);
             error = "Failed to load members";
