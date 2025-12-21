@@ -19,13 +19,13 @@ export const groupApi = {
     create: (attributes: GroupAttributes) =>
         client(`/groups`, {
             method: 'POST',
-            body: JSON.stringify({ data: { type: 'groups', attributes } })
+            body: JSON.stringify({ data: { type: 'group', attributes } })
         }),
 
     update: (id: string, attributes: Partial<GroupAttributes>) =>
         client(`/groups/${id}`, {
             method: 'PATCH',
-            body: JSON.stringify({ data: { type: 'groups', id, attributes } })
+            body: JSON.stringify({ data: { type: 'group', id, attributes } })
         }),
 
     delete: (id: string) => client(`/groups/${id}`, { method: 'DELETE' }),
@@ -57,13 +57,13 @@ export const groupApi = {
     createPost: (groupId: string, attributes: { body: string; is_pinned?: boolean }) =>
         client(`/groups/${groupId}/posts`, {
             method: 'POST',
-            body: JSON.stringify({ data: { type: 'posts', attributes } })
+            body: JSON.stringify({ data: { type: 'group-post', attributes } })
         }),
 
     updatePost: (groupId: string, postId: string, attributes: { body?: string; is_pinned?: boolean }) =>
         client(`/groups/${groupId}/posts/${postId}`, {
             method: 'PATCH',
-            body: JSON.stringify({ data: { type: 'posts', id: postId, attributes } })
+            body: JSON.stringify({ data: { type: 'group-post', id: postId, attributes } })
         }),
 
     deletePost: (groupId: string, postId: string) =>

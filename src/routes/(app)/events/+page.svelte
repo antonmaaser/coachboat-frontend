@@ -57,7 +57,7 @@
             const res = await eventApi.list(year, month + 1);
             if (res.ok) {
                 const json = await res.json();
-                events = json.data || json;
+                events = (json.data || json).map(normalizeEvent);
             } else {
                 console.error("Failed to load events", res.status);
                 if (res.status === 403 || res.status === 401) {
@@ -73,6 +73,16 @@
         } finally {
             loading = false;
         }
+    }
+
+    function normalizeEvent(event: any) {
+        if (event.attributes["recurrence-rule"]) {
+            const rule = event.attributes["recurrence-rule"];
+            event.attributes["recurrence-freq"] = rule.freq.toLowerCase();
+            event.attributes["recurrence-interval"] = rule.interval;
+            event.attributes["recurrence-end-date"] = rule.end;
+        }
+        return event;
     }
 
     // Reload when date changes
@@ -278,7 +288,8 @@
             };
 
             if (newEvent.isRecurring) {
-                payload["recurrence-freq"] = newEvent.recurrenceFreq;
+                payload["recurrence-freq"] =
+                    newEvent.recurrenceFreq.toUpperCase();
                 payload["recurrence-interval"] = newEvent.recurrenceInterval;
                 payload["recurrence-end-date"] = newEvent.recurrenceEndDate;
             }
@@ -731,22 +742,8 @@
                             placeholder="Wähle Frequenz"
                         />
                     </div>
+
                     <div>
-                        <label
-                            for="interval"
-                            class="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1"
-                        >
-                            Intervall
-                        </label>
-                        <input
-                            type="number"
-                            id="interval"
-                            min="1"
-                            bind:value={newEvent.recurrenceInterval}
-                            class="block w-full rounded-md border-zinc-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm dark:bg-zinc-700 dark:border-zinc-600 dark:text-white p-2 border"
-                        />
-                    </div>
-                    <div class="col-span-2">
                         <label
                             for="endDate"
                             class="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1"
@@ -847,7 +844,7 @@
 
         {#if selectedEvent.attributes["is-recurring"]}
             <div
-                class="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-100 dark:border-blue-800"
+                class="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-100 dark:border-blue-800 my-4"
             >
                 <div class="flex items-center gap-2 mb-1">
                     <Icons.Repeat
@@ -860,28 +857,23 @@
                     </span>
                 </div>
                 <p class="text-sm text-blue-800 dark:text-blue-200">
-                    Wiederholt sich
-                    {#if selectedEvent.attributes["recurrence-freq"] === "daily"}
-                        täglich
-                    {:else if selectedEvent.attributes["recurrence-freq"] === "weekly"}
-                        wöchentlich
-                    {:else if selectedEvent.attributes["recurrence-freq"] === "monthly"}
-                        monatlich
-                    {:else if selectedEvent.attributes["recurrence-freq"] === "yearly"}
-                        jährlich
-                    {/if}
-                    {#if selectedEvent.attributes["recurrence-interval"] > 1}
-                        (alle {selectedEvent.attributes["recurrence-interval"]}
-                        {#if selectedEvent.attributes["recurrence-freq"] === "daily"}Tage{/if}
-                        {#if selectedEvent.attributes["recurrence-freq"] === "weekly"}Wochen{/if}
-                        {#if selectedEvent.attributes["recurrence-freq"] === "monthly"}Monate{/if}
-                        {#if selectedEvent.attributes["recurrence-freq"] === "yearly"}Jahre{/if})
-                    {/if}
+                    Diese Buchung wiederholt sich
                     {#if selectedEvent.attributes["recurrence-end-date"]}
                         bis zum {formatDate(
                             selectedEvent.attributes["recurrence-end-date"],
                         )}
                     {/if}
+                    in
+                    {#if selectedEvent.attributes["recurrence-freq"] === "daily"}
+                        täglichen
+                    {:else if selectedEvent.attributes["recurrence-freq"] === "weekly"}
+                        wöchentlichen
+                    {:else if selectedEvent.attributes["recurrence-freq"] === "monthly"}
+                        monatlichen
+                    {:else if selectedEvent.attributes["recurrence-freq"] === "yearly"}
+                        jährlichen
+                    {/if}
+                    Abständen.
                 </p>
             </div>
         {/if}

@@ -23,7 +23,9 @@
     const canEdit = $derived(isAuthor);
     const canDelete = $derived(isAuthor || canModerate);
 
-    function parseBody(body: string) {
+    function parseBody(body: any) {
+        if (!body) return null;
+        if (typeof body === "object") return body;
         try {
             const parsed = JSON.parse(body);
             // Simple check to see if it looks like EditorJS data

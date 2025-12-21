@@ -16,13 +16,13 @@ export const resourceApi = {
     create: (attributes: ResourceAttributes) =>
         client(`/resources`, {
             method: 'POST',
-            body: JSON.stringify({ data: { type: 'resources', attributes } })
+            body: JSON.stringify({ data: { type: 'resource', attributes } })
         }),
 
     update: (id: string, attributes: Partial<ResourceAttributes>) =>
         client(`/resources/${id}`, {
             method: 'PATCH',
-            body: JSON.stringify({ data: { type: 'resources', id, attributes } })
+            body: JSON.stringify({ data: { type: 'resource', id, attributes } })
         }),
 
     delete: (id: string) => client(`/resources/${id}`, { method: 'DELETE' })

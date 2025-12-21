@@ -30,13 +30,13 @@ export const todoApi = {
     create: (attributes: Partial<TodoAttributes>) =>
         client(`/todos`, {
             method: 'POST',
-            body: JSON.stringify({ data: { type: 'todos', attributes } })
+            body: JSON.stringify({ data: { type: 'todo', attributes } })
         }),
 
     update: (id: string, attributes: Partial<TodoAttributes>) =>
         client(`/todos/${id}`, {
             method: 'PATCH',
-            body: JSON.stringify({ data: { type: 'todos', id, attributes } })
+            body: JSON.stringify({ data: { type: 'todo', id, attributes } })
         }),
 
     delete: (id: string) => client(`/todos/${id}`, { method: 'DELETE' })

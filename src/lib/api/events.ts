@@ -11,6 +11,11 @@ export interface EventAttributes {
     'recurrence-freq'?: 'daily' | 'weekly' | 'monthly' | 'yearly';
     'recurrence-interval'?: number;
     'recurrence-end-date'?: string;
+    'recurrence-rule'?: {
+        freq: string;
+        interval: number;
+        end: string;
+    };
 }
 
 export const eventApi = {
@@ -27,13 +32,13 @@ export const eventApi = {
     create: (attributes: EventAttributes) =>
         client(`/events`, {
             method: 'POST',
-            body: JSON.stringify({ data: { attributes } })
+            body: JSON.stringify({ data: { type: 'event', attributes } })
         }),
 
     update: (id: string, attributes: Partial<EventAttributes>) =>
         client(`/events/${id}`, {
             method: 'PATCH',
-            body: JSON.stringify({ data: { attributes } })
+            body: JSON.stringify({ data: { type: 'event', attributes } })
         }),
 
     delete: (id: string) => client(`/events/${id}`, { method: 'DELETE' })

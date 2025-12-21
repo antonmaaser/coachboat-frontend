@@ -54,16 +54,25 @@
     function mapActivity(a: any) {
         const action = a.attributes?.action;
 
-        // 1. Handle Posts
         if (action === "post.created") {
+            let payload = a.attributes?.payload;
+            if (typeof payload === "string") {
+                try {
+                    payload = JSON.parse(payload);
+                } catch (e) {
+                    console.error("Failed to parse payload", e);
+                }
+            }
+
             return {
                 key: a.id, // Unique Activity ID for Svelte Loop
                 id: a.attributes?.["object-id"],
                 type: "post",
                 attributes: {
-                    body: a.attributes?.payload?.body_snippet || "",
+                    body: payload?.body || payload?.body_snippet || "",
                     "created-at": a.attributes?.["created-at"],
                     "created-by": a.relationships?.actor?.data?.id,
+                    payload: payload,
                 },
                 relationships: {
                     user: {
