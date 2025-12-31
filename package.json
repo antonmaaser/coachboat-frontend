@@ -29,6 +29,7 @@
 		"@editorjs/header": "^2.8.8",
 		"@editorjs/list": "^2.0.9",
 		"@editorjs/paragraph": "^2.11.7",
+		"@editorjs/text-variant-tune": "^1.0.3",
 		"lucide-svelte": "^0.556.0"
 	}
 }

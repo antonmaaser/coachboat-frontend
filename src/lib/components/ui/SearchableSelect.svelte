@@ -104,7 +104,7 @@
         {#if isOpen}
             <div
                 transition:slide={{ duration: 100 }}
-                class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white dark:bg-zinc-800 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm"
+                class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-white dark:bg-zinc-800 py-1 text-base shadow-xl border border-zinc-200 dark:border-zinc-700 focus:outline-none sm:text-sm"
             >
                 {#if searchable}
                     <div
@@ -136,10 +136,10 @@
                         <button
                             type="button"
                             onclick={() => handleSelect(option)}
-                            class="relative w-full text-left cursor-default select-none py-2 pl-3 pr-9 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors {option.value ===
+                            class="relative w-full text-left cursor-default select-none py-2.5 px-3 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors {option.value ===
                             value
                                 ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-900 dark:text-blue-100'
-                                : 'text-zinc-900 dark:text-white'}"
+                                : 'text-zinc-700 dark:text-zinc-300'}"
                         >
                             <span class="block truncate font-medium">
                                 {option.label}

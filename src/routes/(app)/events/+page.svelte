@@ -247,7 +247,8 @@
     function handleEdit() {
         if (!selectedEvent) return;
 
-        editTargetId = selectedEvent.id;
+        editTargetId =
+            selectedEvent.attributes["original-id"] || selectedEvent.id;
         newEvent = {
             title: selectedEvent.attributes.title,
             date: selectedEvent.attributes.date.split("T")[0],

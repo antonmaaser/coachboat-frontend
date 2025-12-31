@@ -4,6 +4,9 @@
     import Editor from "$lib/components/editor/Editor.svelte";
     import { Loader2, Send } from "lucide-svelte";
     import { onMount, untrack } from "svelte";
+    import { auth } from "$lib/stores/auth";
+    import { API_BASE } from "$lib/config";
+    import { get } from "svelte/store";
 
     let { groupId, canModerate } = $props<{
         groupId: string;
@@ -167,11 +170,56 @@
         }
     }
 
+    // SSE Handling
+    let eventSource: EventSource | null = null;
+
+    function setupStream(id: string) {
+        if (eventSource) eventSource.close();
+
+        const token = get(auth).accessToken;
+        // Ensure API_BASE does not have trailing slash if we add one, or handle it.
+        // config.ts says API_BASE is e.g. /api or https://...
+        const url = `${API_BASE}/groups/${id}/stream?token=${token}`;
+
+        eventSource = new EventSource(url);
+
+        eventSource.onopen = () => {
+            console.log("[SSE] Connected to group stream", id);
+        };
+
+        eventSource.addEventListener("activity", (e) => {
+            console.log("[SSE] Activity received", e.data);
+            // Refresh feed
+            // Use untrack or just call it? It's async.
+            loadFeed();
+        });
+
+        eventSource.onerror = (e) => {
+            // console.error("[SSE] Error", e);
+            // Standard EventSource behavior is to retry.
+            // implementation details vary by browser.
+            if (eventSource?.readyState === EventSource.CLOSED) {
+                // Closed
+            }
+        };
+    }
+
     // React to groupId changes
     $effect(() => {
         if (groupId) {
-            untrack(() => loadFeed());
+            untrack(() => {
+                loadFeed();
+                setupStream(groupId);
+            });
         }
+
+        return () => {
+            if (eventSource) {
+                console.log("[SSE] Closing connection");
+                eventSource.close();
+                eventSource = null;
+            }
+        };
     });
 </script>
 

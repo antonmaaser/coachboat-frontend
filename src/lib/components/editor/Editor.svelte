@@ -29,11 +29,13 @@
                 { default: Header },
                 { default: List },
                 { default: Paragraph },
+                { default: TextVariantTune },
             ] = await Promise.all([
                 import("@editorjs/editorjs"),
                 import("@editorjs/header"),
                 import("@editorjs/list"),
                 import("@editorjs/paragraph"),
+                import("@editorjs/text-variant-tune"),
             ]);
 
             editor = new EditorJS({
@@ -43,8 +45,10 @@
                 data: data || undefined,
                 minHeight: 0,
                 tools: {
+                    textVariant: TextVariantTune,
                     header: {
                         class: Header as any,
+                        tunes: ["textVariant"],
                         config: {
                             placeholder: "Überschrift",
                             levels: [1, 2, 3],
@@ -53,10 +57,12 @@
                     },
                     list: {
                         class: List as any,
+                        tunes: ["textVariant"],
                         inlineToolbar: true,
                     },
                     paragraph: {
                         class: Paragraph as any,
+                        tunes: ["textVariant"],
                         inlineToolbar: true,
                     },
                 },

@@ -10,9 +10,12 @@
         User,
         Ear,
         X,
+        MoreVertical,
+        Check,
     } from "lucide-svelte";
     import { onMount } from "svelte";
     import SearchableSelect from "$lib/components/ui/SearchableSelect.svelte";
+    import { portal } from "$lib/actions/portal";
 
     let { group, show = $bindable(false) } = $props<{
         group: any;
@@ -27,7 +30,35 @@
     // Add Member Form State
     let selectedUserId = $state("");
     let selectedRole = $state<string>("");
+
     let addingMember = $state(false);
+
+    // Menu State
+    let activeMenu = $state<string | null>(null);
+    let menuPosition = $state({ x: 0, y: 0 });
+    const activeMember = $derived(members.find((m) => m.id === activeMenu));
+
+    function toggleMenu(e: MouseEvent, memberId: string) {
+        if (activeMenu === memberId) {
+            activeMenu = null;
+            return;
+        }
+
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        // Position: Top = button bottom, Right aligned = button right
+        menuPosition = {
+            x: rect.right,
+            y: rect.bottom + 5,
+        };
+        activeMenu = memberId;
+    }
+
+    // Close menu on scroll to prevent detachment
+    function handleScroll() {
+        if (activeMenu) activeMenu = null;
+    }
+
+    // Close menu on scroll to prevent detachment
 
     async function loadData() {
         if (!group?.id) return;
@@ -250,7 +281,10 @@
                 </button>
             </div>
 
-            <div class="flex-1 overflow-y-auto p-6 space-y-6">
+            <div
+                class="flex-1 overflow-y-auto p-6 space-y-6"
+                onscroll={handleScroll}
+            >
                 {#if loading && members.length === 0}
                     <div class="flex justify-center p-8">
                         <Loader2 class="w-8 h-8 animate-spin text-blue-600" />
@@ -346,57 +380,35 @@
                                     </div>
 
                                     <div class="flex items-center gap-3">
-                                        {#if canManageMembers && member.id !== currentUser?.id}
-                                            <div class="w-32">
-                                                <SearchableSelect
-                                                    options={[
-                                                        {
-                                                            value: "",
-                                                            label: "Standard",
-                                                        },
-                                                        {
-                                                            value: "listener",
-                                                            label: "Listener",
-                                                        },
-                                                        {
-                                                            value: "moderator",
-                                                            label: "Moderator",
-                                                        },
-                                                    ]}
-                                                    value={member.groupRole ||
-                                                        ""}
-                                                    onchange={(newValue) =>
-                                                        handleUpdateMember(
-                                                            member.id,
-                                                            newValue,
-                                                        )}
-                                                    searchable={false}
-                                                    class="text-xs"
-                                                />
-                                            </div>
-                                        {:else}
-                                            <span
-                                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium
+                                        <!-- Role Badge (Always Visible) -->
+                                        <span
+                                            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium
                                             {member.groupRole === 'moderator'
-                                                    ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
-                                                    : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-400'}"
-                                            >
-                                                <RoleIcon class="w-3 h-3" />
-                                                {member.groupRole}
-                                            </span>
-                                        {/if}
+                                                ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+                                                : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-400'}"
+                                        >
+                                            <RoleIcon class="w-3 h-3" />
+                                            {member.groupRole || "Standard"}
+                                        </span>
 
-                                        {#if canRemoveUser(member)}
-                                            <button
-                                                onclick={() =>
-                                                    handleRemoveMember(
-                                                        member.id,
-                                                    )}
-                                                class="p-1 text-zinc-400 hover:text-red-600 transition-colors"
-                                                title="Entfernen"
+                                        <!-- Admin Actions (Menu) -->
+                                        {#if canManageMembers && member.id !== currentUser?.id}
+                                            <div
+                                                class="relative inline-block text-left"
                                             >
-                                                <Trash2 class="w-4 h-4" />
-                                            </button>
+                                                <button
+                                                    onclick={(e) =>
+                                                        toggleMenu(
+                                                            e,
+                                                            member.id,
+                                                        )}
+                                                    class="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                                                >
+                                                    <MoreVertical
+                                                        class="w-5 h-5"
+                                                    />
+                                                </button>
+                                            </div>
                                         {/if}
                                     </div>
                                 </div>
@@ -428,4 +440,88 @@
             </div>
         </div>
     </div>
+
+    <!-- Floating Menu Portal (Fixed to Viewport) -->
+    {#if activeMenu}
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div use:portal>
+            <div
+                class="fixed inset-0 z-[60]"
+                onclick={() => (activeMenu = null)}
+            ></div>
+            <div
+                class="fixed z-[70] w-48 bg-white dark:bg-zinc-800 rounded-lg shadow-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden"
+                style="top: {menuPosition.y}px; left: {menuPosition.x - 192}px;"
+            >
+                <button
+                    onclick={() => {
+                        handleUpdateMember(activeMenu!, "");
+                        activeMenu = null;
+                    }}
+                    class="w-full text-left px-4 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center justify-between group"
+                >
+                    <div class="flex items-center gap-2">
+                        <User
+                            class="w-4 h-4 text-zinc-400 group-hover:text-zinc-600 dark:text-zinc-500 dark:group-hover:text-zinc-300"
+                        />
+                        <span>Standard</span>
+                    </div>
+                    {#if !activeMember?.groupRole}
+                        <Check class="w-4 h-4 text-blue-600" />
+                    {/if}
+                </button>
+                <button
+                    onclick={() => {
+                        handleUpdateMember(activeMenu!, "listener");
+                        activeMenu = null;
+                    }}
+                    class="w-full text-left px-4 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center justify-between group"
+                >
+                    <div class="flex items-center gap-2">
+                        <Ear
+                            class="w-4 h-4 text-zinc-400 group-hover:text-zinc-600 dark:text-zinc-500 dark:group-hover:text-zinc-300"
+                        />
+                        <span>Listener</span>
+                    </div>
+                    {#if activeMember?.groupRole === "listener"}
+                        <Check class="w-4 h-4 text-blue-600" />
+                    {/if}
+                </button>
+                <button
+                    onclick={() => {
+                        handleUpdateMember(activeMenu!, "moderator");
+                        activeMenu = null;
+                    }}
+                    class="w-full text-left px-4 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center justify-between group"
+                >
+                    <div class="flex items-center gap-2">
+                        <Shield
+                            class="w-4 h-4 text-zinc-400 group-hover:text-zinc-600 dark:text-zinc-500 dark:group-hover:text-zinc-300"
+                        />
+                        <span>Moderator</span>
+                    </div>
+                    {#if activeMember?.groupRole === "moderator"}
+                        <Check class="w-4 h-4 text-blue-600" />
+                    {/if}
+                </button>
+
+                {#if activeMember && canRemoveUser(activeMember)}
+                    <div
+                        class="border-t border-zinc-100 dark:border-zinc-700 my-1"
+                    ></div>
+                    <button
+                        onclick={() => {
+                            handleRemoveMember(activeMember.id);
+                            activeMenu = null;
+                        }}
+                        class="w-full text-left px-4 py-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm text-red-600 dark:text-red-400 flex items-center gap-2"
+                    >
+                        <Trash2 class="w-4 h-4" />
+                        Entfernen
+                    </button>
+                {/if}
+            </div>
+        </div>
+    {/if}
 {/if}

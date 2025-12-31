@@ -14,7 +14,7 @@ export default defineConfig({
 				rewrite: (path) => path.replace(/^\/api/, '')
 			},
 			'/auth': {
-				target: 'https://auth.coachboat-planer.de',
+				target: 'http://localhost:3001',
 				changeOrigin: true,
 				secure: false,
 				rewrite: (path) => path.replace(/^\/auth/, '')
