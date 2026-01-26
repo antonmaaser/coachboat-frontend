@@ -1,14 +1,20 @@
 import { test, expect } from '@playwright/test';
-import { setupAndLogin } from './test-utils';
-import { createUser, createGroup } from './factories';
+import { setupMocks } from './test-utils';
+import { createGroup } from './factories';
+import { AUTH_USERS, STORAGE_STATE } from './fixtures/auth';
 
 test.describe('Groups', () => {
-    const user = createUser({ status: 2, permissions: ['groups:view'] });
+    test.use({ storageState: STORAGE_STATE.user });
+
+    const user = {
+        ...AUTH_USERS.user,
+        permissions: [...AUTH_USERS.user.permissions, 'groups:view']
+    };
     const group1 = createGroup({ title: 'Training A' });
     const group2 = createGroup({ title: 'Training B' });
 
     test.beforeEach(async ({ page }) => {
-        await setupAndLogin(page, user, {
+        await setupMocks(page, user, {
             'GET /groups': {
                 data: [
                     { id: group1.id, attributes: group1 },
