@@ -6,6 +6,13 @@ export interface ResourceAttributes {
     'is-ready'?: boolean;
     'is-hidden'?: boolean;
     'category-id'?: string | null;
+    'created-at'?: string;
+}
+
+export interface Resource {
+    id: string;
+    type: 'resource';
+    attributes: ResourceAttributes;
 }
 
 export const resourceApi = {

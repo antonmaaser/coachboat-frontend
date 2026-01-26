@@ -6,6 +6,14 @@ export interface UserAttributes {
     email?: string;
     password?: string;
     status?: number;
+    role?: { slug: string; name: string } | string;
+    'created-at'?: string;
+}
+
+export interface User {
+    id: string;
+    type: 'user';
+    attributes: UserAttributes;
 }
 
 export const userApi = {

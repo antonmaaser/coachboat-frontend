@@ -3,18 +3,21 @@
     import { resourceApi } from "$lib/api/resources";
     import { resourceCategoryApi } from "$lib/api/resource-categories";
     import { userApi } from "$lib/api/users";
-    import { auth } from "$lib/stores/auth";
+    import { auth, hasPermission } from "$lib/stores/auth";
     import {
         ChevronLeft,
         ChevronRight,
         Plus,
         Loader2,
-        AlertCircle,
+        AlertCircle, // Keeping this just in case, but ErrorAlert uses its own icon
     } from "lucide-svelte";
     import * as Icons from "lucide-svelte";
     import { onMount } from "svelte";
     import Modal from "$lib/components/Modal.svelte";
     import SearchableSelect from "$lib/components/ui/SearchableSelect.svelte";
+    import { extractErrorMessage } from "$lib/utils/error";
+    import ErrorAlert from "$lib/components/ui/ErrorAlert.svelte";
+    import { toast } from "$lib/stores/toast";
 
     let currentDate = $state(new Date());
     let events = $state<any[]>([]);
@@ -64,12 +67,12 @@
                     error =
                         "Nicht autorisiert. Bitte loggen Sie sich erneut ein.";
                 } else {
-                    error = "Fehler beim Laden der Termine.";
+                    error = await extractErrorMessage(res);
                 }
             }
         } catch (e) {
             console.error(e);
-            error = "Ein unerwarteter Fehler ist aufgetreten.";
+            error = await extractErrorMessage(e);
         } finally {
             loading = false;
         }
@@ -164,7 +167,7 @@
     let canEdit = $derived(
         $auth.user &&
             selectedUser &&
-            (($auth.user.status || 0) >= 3 ||
+            (hasPermission($auth.user, "events:edit:any") ||
                 $auth.user?.id === selectedUser.id),
     );
 
@@ -318,15 +321,13 @@
                     recurrenceEndDate: "",
                 };
             } else {
-                alert(
-                    editTargetId
-                        ? "Failed to update event"
-                        : "Failed to create event",
-                );
+                const msg = await extractErrorMessage(res);
+                toast.error(msg);
             }
         } catch (err) {
             console.error(err);
-            alert("Error saving event");
+            const msg = await extractErrorMessage(err);
+            toast.error(msg);
         } finally {
             creating = false;
         }
@@ -348,7 +349,7 @@
         showCreateModal = true;
     }
 
-    let canCreate = $derived($auth.user?.status && $auth.user.status >= 1);
+    let canCreate = $derived(hasPermission($auth.user, "events:create"));
 </script>
 
 <div class="space-y-6">
@@ -436,10 +437,8 @@
                                 : category.id)}
                 >
                     {#if category.attributes.icon && (Icons as any)[category.attributes.icon]}
-                        <svelte:component
-                            this={(Icons as any)[category.attributes.icon]}
-                            class="w-4 h-4"
-                        />
+                        {@const Icon = (Icons as any)[category.attributes.icon]}
+                        <Icon class="w-4 h-4" />
                     {/if}
                     {category.attributes.title}
                 </button>
@@ -448,12 +447,7 @@
     {/if}
 
     {#if error}
-        <div
-            class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-xl flex items-center gap-3"
-        >
-            <AlertCircle class="w-5 h-5 shrink-0" />
-            <p>{error}</p>
-        </div>
+        <ErrorAlert {error} />
     {/if}
 
     <!-- Mobile Date Scroller & Event List -->

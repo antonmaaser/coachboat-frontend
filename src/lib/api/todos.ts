@@ -1,8 +1,8 @@
 import { client } from './client';
 
 export interface TodoAttributes {
-    'resource-id': number;
-    'created-by'?: number;
+    'resource-id': string;
+    'created-by'?: string;
     status?: number;
     title: string;
     description?: string;

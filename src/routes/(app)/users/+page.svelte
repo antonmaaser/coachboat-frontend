@@ -1,6 +1,6 @@
 <script lang="ts">
     import { userApi } from "$lib/api/users";
-    import { auth } from "$lib/stores/auth";
+    import { auth, hasPermission } from "$lib/stores/auth";
     import Modal from "$lib/components/Modal.svelte";
     import UserForm from "$lib/components/UserForm.svelte";
     import {
@@ -41,6 +41,9 @@
                 valA = a.attributes.email.toLowerCase();
                 valB = b.attributes.email.toLowerCase();
             } else if (sortField === "status") {
+                // Sort by legacy status still works as a proxy for precedence
+                // or we could map role slug to precedence.
+                // Stick to status for now as it's returned and follows 0-4 scale.
                 valA = a.attributes.status;
                 valB = b.attributes.status;
             }
@@ -154,16 +157,56 @@
         loadUsers();
     });
 
-    function getStatusBadge(status: number) {
-        if (status >= 3)
+    function getStatusBadge(attrs: any) {
+        const role = attrs.role;
+        const status = Number(attrs.status);
+
+        if (role) {
+            // Use Role-based styling
+            switch (role.slug) {
+                case "admin":
+                    return {
+                        label: role.name,
+                        color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
+                    };
+                case "moderator":
+                    return {
+                        label: role.name,
+                        color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300",
+                    };
+                case "user":
+                    return {
+                        label: role.name,
+                        color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
+                    };
+                case "group_only":
+                    return {
+                        label: role.name,
+                        color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
+                    };
+            }
+        }
+
+        // Fallback to legacy status if no role returned
+        if (status >= 4)
             return {
                 label: "Admin",
                 color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
             };
-        if (status >= 1)
+        if (status === 3)
             return {
-                label: "Aktiviert",
+                label: "Moderator",
+                color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300",
+            };
+        if (status === 2)
+            return {
+                label: "Benutzer",
                 color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
+            };
+        if (status === 1)
+            return {
+                label: "Nur Gruppen",
+                color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
             };
         return {
             label: "Deaktiviert",
@@ -180,13 +223,15 @@
             Benutzer
         </h1>
 
-        <button
-            onclick={openCreateModal}
-            class="w-full md:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-blue-600/20"
-        >
-            <Plus class="w-5 h-5" />
-            Benutzer hinzufügen
-        </button>
+        {#if hasPermission($auth.user, "users:create")}
+            <button
+                onclick={openCreateModal}
+                class="w-full md:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-blue-600/20"
+            >
+                <Plus class="w-5 h-5" />
+                Benutzer hinzufügen
+            </button>
+        {/if}
     </div>
 
     <div
@@ -243,7 +288,9 @@
                                 {/if}
                             </button>
                         </th>
-                        <th class="px-6 py-4 text-right">Actions</th>
+                        {#if hasPermission($auth.user, "users:edit") || hasPermission($auth.user, "users:delete")}
+                            <th class="px-6 py-4 text-right">Actions</th>
+                        {/if}
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-zinc-100 dark:divide-zinc-700/50">
@@ -263,7 +310,7 @@
                     {:else}
                         {#each sortedUsers as user}
                             {@const attrs = user.attributes}
-                            {@const badge = getStatusBadge(attrs.status)}
+                            {@const badge = getStatusBadge(attrs)}
                             <tr
                                 class="hover:bg-zinc-50 dark:hover:bg-zinc-700/20 transition-colors group"
                             >
@@ -318,17 +365,19 @@
                                             <div
                                                 class="absolute right-0 z-20 mt-2 w-48 bg-white dark:bg-zinc-800 rounded-lg shadow-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden transform origin-top-right transition-all"
                                             >
-                                                <button
-                                                    onclick={() => {
-                                                        activeMenu = null;
-                                                        openEditModal(user);
-                                                    }}
-                                                    class="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2"
-                                                >
-                                                    <Pencil class="w-4 h-4" />
-                                                    Bearbeiten
-                                                </button>
-                                                {#if $auth.user?.status && $auth.user.status >= 3}
+                                                {#if hasPermission($auth.user, "users:edit")}
+                                                    <button
+                                                        onclick={() => {
+                                                            activeMenu = null;
+                                                            openEditModal(user);
+                                                        }}
+                                                        class="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2"
+                                                    >
+                                                        <Pencil
+                                                            class="w-4 h-4"
+                                                        />
+                                                        Bearbeiten
+                                                    </button>
                                                     <button
                                                         onclick={() => {
                                                             activeMenu = null;
@@ -343,23 +392,22 @@
                                                         />
                                                         Passwort zurücksetzen
                                                     </button>
-                                                    {#if user.attributes.status < 1}
-                                                        <button
-                                                            onclick={() => {
-                                                                activeMenu =
-                                                                    null;
-                                                                handleDeleteUser(
-                                                                    user,
-                                                                );
-                                                            }}
-                                                            class="w-full text-left px-4 py-3 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm text-red-600 dark:text-red-400 flex items-center gap-2 border-t border-zinc-100 dark:border-zinc-700"
-                                                        >
-                                                            <Trash2
-                                                                class="w-4 h-4"
-                                                            />
-                                                            Benutzer löschen
-                                                        </button>
-                                                    {/if}
+                                                {/if}
+                                                {#if hasPermission($auth.user, "users:delete") && user.attributes.status < 1}
+                                                    <button
+                                                        onclick={() => {
+                                                            activeMenu = null;
+                                                            handleDeleteUser(
+                                                                user,
+                                                            );
+                                                        }}
+                                                        class="w-full text-left px-4 py-3 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm text-red-600 dark:text-red-400 flex items-center gap-2 border-t border-zinc-100 dark:border-zinc-700"
+                                                    >
+                                                        <Trash2
+                                                            class="w-4 h-4"
+                                                        />
+                                                        Benutzer löschen
+                                                    </button>
                                                 {/if}
                                             </div>
                                         {/if}

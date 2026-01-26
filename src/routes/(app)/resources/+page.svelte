@@ -1,7 +1,9 @@
 <script lang="ts">
     import { resourceApi } from "$lib/api/resources";
+    import { client } from "$lib/api/client";
     import { todoApi } from "$lib/api/todos";
-    import { auth } from "$lib/stores/auth";
+    import { auth, hasPermission } from "$lib/stores/auth";
+    import { toast } from "$lib/stores/toast";
     import Modal from "$lib/components/Modal.svelte";
     import ResourceForm from "$lib/components/ResourceForm.svelte";
     import TodoList from "$lib/components/TodoList.svelte";
@@ -21,15 +23,19 @@
     import { onMount } from "svelte";
 
     import { resourceCategoryApi } from "$lib/api/resource-categories";
+    import { extractErrorMessage } from "$lib/utils/error";
+    import ErrorAlert from "$lib/components/ui/ErrorAlert.svelte";
 
     let resources = $state<any[]>([]);
     let todos = $state<any[]>([]);
     let categories = $state<any[]>([]);
     let loading = $state(true);
+    let error = $state<string | null>(null);
     let showModal = $state(false);
     let editingResource = $state<any>(undefined);
     let activeMenuId = $state<string | null>(null);
     let viewingTodosFor = $state<any>(undefined);
+    let isLoading = $state(true);
 
     async function handleDelete(resource: any) {
         if (!confirm("Are you sure you want to delete this resource?")) return;
@@ -38,11 +44,13 @@
             if (res.ok) {
                 loadResources();
             } else {
-                alert("Failed to delete resource");
+                const msg = await extractErrorMessage(res);
+                toast.error(msg);
             }
         } catch (e) {
             console.error(e);
-            alert("Error deleting resource");
+            const msg = await extractErrorMessage(e);
+            toast.error(msg);
         }
     }
 
@@ -71,6 +79,7 @@
             }
         } catch (e) {
             console.error(e);
+            error = await extractErrorMessage(e);
         } finally {
             loading = false;
         }
@@ -95,7 +104,7 @@
         loadResources();
     });
 
-    let isAdmin = $derived($auth.user?.status && $auth.user.status >= 3);
+    let isAdmin = $derived(hasPermission($auth.user, "resources:create")); // Or manage
 
     // Calculate open todo counts per resource
     let todoCounts = $derived.by(() => {
@@ -126,6 +135,8 @@
         try {
             const res = await todoApi.update(todo.id, { status: newStatus });
             if (!res.ok) {
+                const msg = await extractErrorMessage(res);
+                toast.error(msg);
                 todos = todos.map((t) =>
                     t.id === todo.id
                         ? {
@@ -140,6 +151,8 @@
             }
         } catch (e) {
             console.error("Failed to update status", e);
+            const msg = await extractErrorMessage(e);
+            toast.error(msg);
             todos = todos.map((t) =>
                 t.id === todo.id
                     ? {
@@ -190,6 +203,8 @@
                 class="w-8 h-8 rounded-full border-4 border-blue-600 border-t-transparent animate-spin"
             ></div>
         </div>
+    {:else if error}
+        <ErrorAlert {error} />
     {:else if resources.length === 0}
         <div
             class="text-center p-12 bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700"
@@ -221,12 +236,12 @@
                                     .color};"
                             >
                                 {#if category.attributes.icon && (Icons as any)[category.attributes.icon]}
-                                    <svelte:component
-                                        this={(Icons as any)[
-                                            category.attributes.icon
-                                        ]}
-                                        class="w-4 h-4"
-                                    />
+                                    {@const Icon = (Icons as any)[
+                                        category.attributes.icon
+                                    ]}
+                                    {#if Icon}
+                                        <Icon class="w-4 h-4" />
+                                    {/if}
                                 {/if}
                                 {category.attributes.title}
                             </div>
@@ -245,7 +260,7 @@
                                 {todoCounts[resource.id]}
                             </div>
                         {/if}
-                        {#if $auth.user?.status && $auth.user.status >= 1}
+                        {#if $auth.user?.status && $auth.user.status >= 2}
                             <div class="relative z-20">
                                 <button
                                     onclick={() =>

@@ -163,8 +163,8 @@
                             class="w-10 h-10 flex items-center justify-center bg-zinc-100 dark:bg-zinc-700 rounded-lg"
                         >
                             {#if icon && (Icons as any)[icon]}
-                                <svelte:component
-                                    this={(Icons as any)[icon]}
+                                {@const Icon = (Icons as any)[icon]}
+                                <Icon
                                     class="w-6 h-6 text-zinc-600 dark:text-zinc-300"
                                 />
                             {/if}

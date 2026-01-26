@@ -1,11 +1,10 @@
 <script lang="ts">
     import { page } from "$app/stores";
-    import { auth, logout } from "$lib/stores/auth";
+    import { auth, logout, hasPermission } from "$lib/stores/auth";
     import { theme } from "$lib/stores/theme";
     import {
         LayoutDashboard,
         Calendar,
-        Ship,
         Users,
         LogOut,
         Menu,
@@ -30,6 +29,7 @@
     }
 </script>
 
+```html
 <!-- Mobile Backdrop -->
 {#if isOpen}
     <div
@@ -78,43 +78,49 @@
             Dashboard
         </a>
 
-        <a
-            href="/events"
-            onclick={close}
-            class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium
+        {#if hasPermission($auth.user, "events:view")}
+            <a
+                href="/events"
+                onclick={close}
+                class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium
         {isActive('/events', $page.url.pathname)
-                ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
-                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 hover:text-zinc-900 dark:hover:text-zinc-200'}"
-        >
-            <Calendar class="w-5 h-5" />
-            Buchungen
-        </a>
+                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 hover:text-zinc-900 dark:hover:text-zinc-200'}"
+            >
+                <Calendar class="w-5 h-5" />
+                Buchungen
+            </a>
+        {/if}
 
-        <a
-            href="/resources"
-            onclick={close}
-            class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium
+        {#if hasPermission($auth.user, "resources:view")}
+            <a
+                href="/resources"
+                onclick={close}
+                class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium
         {isActive('/resources', $page.url.pathname)
-                ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
-                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 hover:text-zinc-900 dark:hover:text-zinc-200'}"
-        >
-            <DraftingCompass class="w-5 h-5" />
-            Materialien
-        </a>
+                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 hover:text-zinc-900 dark:hover:text-zinc-200'}"
+            >
+                <DraftingCompass class="w-5 h-5" />
+                Materialien
+            </a>
+        {/if}
 
-        <a
-            href="/groups"
-            onclick={close}
-            class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium
+        {#if hasPermission($auth.user, "groups:view")}
+            <a
+                href="/groups"
+                onclick={close}
+                class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium
         {isActive('/groups', $page.url.pathname)
-                ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
-                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 hover:text-zinc-900 dark:hover:text-zinc-200'}"
-        >
-            <Users class="w-5 h-5" />
-            Gruppen
-        </a>
+                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 hover:text-zinc-900 dark:hover:text-zinc-200'}"
+            >
+                <Users class="w-5 h-5" />
+                Gruppen
+            </a>
+        {/if}
 
-        {#if $auth.user && $auth.user.status && $auth.user.status >= 3}
+        {#if hasPermission($auth.user, "users:read")}
             <div class="pt-4 pb-2">
                 <p
                     class="px-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider"

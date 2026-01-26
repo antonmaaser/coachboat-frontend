@@ -1,7 +1,7 @@
 <script lang="ts">
     import { page } from "$app/stores";
     import { groupApi } from "$lib/api/groups";
-    import { auth } from "$lib/stores/auth";
+    import { auth, hasPermission } from "$lib/stores/auth";
     import { onMount } from "svelte";
     import GroupFeed from "$lib/components/GroupFeed.svelte";
     import GroupMembersModal from "$lib/components/GroupMembersModal.svelte";
@@ -16,6 +16,7 @@
     async function loadGroup() {
         loading = true;
         try {
+            if (!groupId) return;
             const res = await groupApi.get(groupId);
             if (res.ok) {
                 const json = await res.json();
@@ -36,17 +37,10 @@
     });
 
     const currentUser = $derived($auth.user);
-    const isAdmin = $derived((currentUser?.status || 0) >= 3);
-
-    // Check if user is a moderator of this group
-    // We need the member list to check this. The group response might include it.
-    // Based on `GroupMembersModal` logic, the group response has `attributes.members`.
-    const isGroupModerator = $derived(
-        group?.attributes?.members?.find((m: any) => m.id == currentUser?.id)
-            ?.role === "moderator",
+    // isAdmin check replaced by specific permission, though for moderation we combine it
+    const canManageGroup = $derived(
+        hasPermission(currentUser, "groups:manage"),
     );
-
-    const canManageGroup = $derived(isAdmin || isGroupModerator);
 </script>
 
 <div class="space-y-6">
@@ -95,7 +89,10 @@
                 >
                     Pinnwand
                 </h2>
-                <GroupFeed {groupId} canModerate={canManageGroup} />
+                <GroupFeed
+                    groupId={groupId || ""}
+                    canModerate={canManageGroup}
+                />
             </div>
         </div>
     {/if}

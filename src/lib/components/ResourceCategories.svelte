@@ -93,10 +93,10 @@
                             style="color: {cat.attributes.color}"
                         >
                             {#if cat.attributes.icon && (Icons as any)[cat.attributes.icon]}
-                                <svelte:component
-                                    this={(Icons as any)[cat.attributes.icon]}
-                                    class="w-5 h-5"
-                                />
+                                {@const Icon = (Icons as any)[
+                                    cat.attributes.icon
+                                ]}
+                                <Icon class="w-5 h-5" />
                             {:else}
                                 <span
                                     class="w-4 h-4 block bg-current rounded-full"

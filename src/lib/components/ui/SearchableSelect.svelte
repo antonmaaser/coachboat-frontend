@@ -27,14 +27,16 @@
 
     // Derived state
     const filteredOptions = $derived(
-        options.filter((opt) =>
+        options.filter((opt: any) =>
             searchable
                 ? opt.label.toLowerCase().includes(searchTerm.toLowerCase())
                 : true,
         ),
     );
 
-    const selectedOption = $derived(options.find((opt) => opt.value === value));
+    const selectedOption = $derived(
+        options.find((opt: any) => opt.value === value),
+    );
 
     function handleSelect(option: any) {
         value = option.value;

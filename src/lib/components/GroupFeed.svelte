@@ -7,6 +7,9 @@
     import { auth } from "$lib/stores/auth";
     import { API_BASE } from "$lib/config";
     import { get } from "svelte/store";
+    import { extractErrorMessage } from "$lib/utils/error";
+    import ErrorAlert from "$lib/components/ui/ErrorAlert.svelte";
+    import { toast } from "$lib/stores/toast";
 
     let { groupId, canModerate } = $props<{
         groupId: string;
@@ -48,7 +51,7 @@
                 .filter(Boolean);
         } catch (e: any) {
             console.error("[GroupFeed] Error:", e);
-            error = e.message || "Unbekannter Fehler beim Laden des Feeds";
+            error = await extractErrorMessage(e);
         } finally {
             loading = false;
         }
@@ -135,11 +138,13 @@
                 renderKey++; // Reset editor
                 await loadFeed();
             } else {
-                alert("Fehler beim Erstellen des Posts");
+                const msg = await extractErrorMessage(res);
+                toast.error(msg);
             }
         } catch (e) {
             console.error(e);
-            alert("Fehler beim Erstellen des Posts");
+            const msg = await extractErrorMessage(e);
+            toast.error(msg);
         } finally {
             creating = false;
         }
@@ -151,9 +156,14 @@
             const res = await groupApi.deletePost(groupId, postId);
             if (res.ok) {
                 await loadFeed();
+            } else {
+                const msg = await extractErrorMessage(res);
+                toast.error(msg);
             }
         } catch (e) {
             console.error(e);
+            const msg = await extractErrorMessage(e);
+            toast.error(msg);
         }
     }
 
@@ -164,9 +174,14 @@
             });
             if (res.ok) {
                 await loadFeed();
+            } else {
+                const msg = await extractErrorMessage(res);
+                toast.error(msg);
             }
         } catch (e) {
             console.error(e);
+            const msg = await extractErrorMessage(e);
+            toast.error(msg);
         }
     }
 
@@ -262,10 +277,11 @@
             <Loader2 class="w-8 h-8 animate-spin text-blue-600" />
         </div>
     {:else if error}
-        <div class="p-4 bg-red-50 text-red-600 rounded-lg text-sm text-center">
-            {error}
-            <button class="block mx-auto mt-2 underline" onclick={loadFeed}
-                >Nochmal versuchen</button
+        <div class="space-y-2">
+            <ErrorAlert {error} />
+            <button
+                class="block mx-auto text-sm text-blue-600 hover:underline"
+                onclick={loadFeed}>Nochmal versuchen</button
             >
         </div>
     {:else if items.length === 0}

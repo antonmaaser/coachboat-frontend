@@ -72,20 +72,22 @@
         >
             <h3 class="text-blue-100 font-medium">Quick Actions</h3>
             <div class="mt-4 space-y-2">
-                <a
-                    href="/events"
-                    class="flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-colors px-3 py-2 rounded-lg text-sm font-medium text-white"
-                >
-                    <Calendar class="w-4 h-4" />
-                    Kalender anschauen
-                </a>
-                <a
-                    href="/resources"
-                    class="flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-colors px-3 py-2 rounded-lg text-sm font-medium text-white"
-                >
-                    <DraftingCompass class="w-4 h-4" />
-                    Boot buchen
-                </a>
+                {#if $auth.user?.status && $auth.user.status >= 2}
+                    <a
+                        href="/events"
+                        class="flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-colors px-3 py-2 rounded-lg text-sm font-medium text-white"
+                    >
+                        <Calendar class="w-4 h-4" />
+                        Kalender anschauen
+                    </a>
+                    <a
+                        href="/resources"
+                        class="flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-colors px-3 py-2 rounded-lg text-sm font-medium text-white"
+                    >
+                        <DraftingCompass class="w-4 h-4" />
+                        Boot buchen
+                    </a>
+                {/if}
                 <a
                     href="/groups"
                     class="flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-colors px-3 py-2 rounded-lg text-sm font-medium text-white"

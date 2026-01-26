@@ -7,6 +7,7 @@ export interface User {
     name?: string;
     firstName?: string;
     status?: number; // 0=inactive, 1=active, 3=admin etc.
+    permissions?: string[]; // RBAC permissions
 }
 
 export interface AuthState {
@@ -49,4 +50,13 @@ export const logout = () => {
         localStorage.removeItem('coachboat_auth');
         // Optional: window.location.href = '/login';
     }
+};
+
+export const hasPermission = (user: User | null, permission: string): boolean => {
+    if (!user) return false;
+    // Check permissions array
+    if (user.permissions && user.permissions.includes(permission)) return true;
+
+    // Fallback? (Maybe admin has * in frontend logic too? backend sent explicit perms though)
+    return false;
 };

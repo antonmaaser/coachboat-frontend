@@ -103,7 +103,6 @@
                     label="Neues Passwort"
                     bind:value={newPassword}
                     required
-                    minlength={8}
                 />
             </div>
 
@@ -114,7 +113,6 @@
                     label="Passwort bestätigen"
                     bind:value={confirmPassword}
                     required
-                    minlength={8}
                 />
             </div>
 

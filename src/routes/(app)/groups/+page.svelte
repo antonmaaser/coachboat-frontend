@@ -1,6 +1,6 @@
 <script lang="ts">
     import { groupApi } from "$lib/api/groups";
-    import { auth } from "$lib/stores/auth";
+    import { auth, hasPermission } from "$lib/stores/auth";
     import Modal from "$lib/components/Modal.svelte";
     import GroupForm from "$lib/components/GroupForm.svelte";
     import {
@@ -111,7 +111,7 @@
         }
     }
 
-    const isAdmin = $derived($auth.user?.status && $auth.user.status >= 3);
+    // isAdmin removed in favor of granular permissions
 </script>
 
 <div class="space-y-6">
@@ -122,7 +122,7 @@
             Gruppen
         </h1>
 
-        {#if isAdmin}
+        {#if hasPermission($auth.user, "groups:create")}
             <button
                 onclick={openCreateModal}
                 class="w-full md:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-blue-600/20"
@@ -241,7 +241,7 @@
                                                     <UserPlus class="w-4 h-4" />
                                                     Mitglieder
                                                 </button>
-                                                {#if isAdmin}
+                                                {#if hasPermission($auth.user, "groups:edit")}
                                                     <button
                                                         onclick={() => {
                                                             activeMenu = null;
@@ -256,6 +256,8 @@
                                                         />
                                                         Bearbeiten
                                                     </button>
+                                                {/if}
+                                                {#if hasPermission($auth.user, "groups:delete")}
                                                     <button
                                                         onclick={() => {
                                                             activeMenu = null;

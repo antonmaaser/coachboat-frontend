@@ -13,14 +13,25 @@
     let firstName = $state("");
     let email = $state("");
     let password = $state(""); // Only for creation/reset if needed, but simplified for now
-    let status = $state("1"); // Default to Active ("1")
+    let roleSlug = $state("user"); // Default to Standard User
 
     $effect(() => {
         name = user?.attributes.name || "";
         firstName = user?.attributes["first-name"] || "";
         email = user?.attributes.email || "";
-        status = (user?.attributes.status ?? 1).toString();
-        // Password usually doesn't need to be reset from user prop on edit
+
+        // Determine initial role selection
+        if (user?.attributes.role && typeof user.attributes.role !== "string") {
+            roleSlug = user.attributes.role.slug;
+        } else {
+            // Fallback mapper from status if role not present yet
+            const s = Number(user?.attributes.status ?? 1);
+            if (s >= 4) roleSlug = "admin";
+            else if (s === 3) roleSlug = "moderator";
+            else if (s === 2) roleSlug = "user";
+            else if (s === 1) roleSlug = "group_only";
+            else roleSlug = "user"; // Default
+        }
     });
 
     let loading = $state(false);
@@ -36,7 +47,7 @@
                 name,
                 "first-name": firstName,
                 email,
-                status: Number(status),
+                role: roleSlug,
             };
 
             if (!user?.id && password) {
@@ -123,12 +134,13 @@
 
     <div>
         <SearchableSelect
-            label="Status"
-            bind:value={status}
+            label="Rolle"
+            bind:value={roleSlug}
             options={[
-                { value: "0", label: "Inactive" },
-                { value: "1", label: "Active" },
-                { value: "3", label: "Admin" },
+                { value: "admin", label: "Administrator" },
+                { value: "moderator", label: "Moderator" },
+                { value: "user", label: "Benutzer" },
+                { value: "group_only", label: "Nur Gruppen" },
             ]}
             searchable={false}
         />

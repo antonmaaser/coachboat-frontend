@@ -1,7 +1,7 @@
 <script lang="ts">
     import { todoApi, type Todo } from "$lib/api/todos";
     import { resourceApi } from "$lib/api/resources";
-    import { auth } from "$lib/stores/auth";
+    import { auth, hasPermission } from "$lib/stores/auth";
     import {
         Plus,
         Trash2,
@@ -11,6 +11,9 @@
         X,
     } from "lucide-svelte";
     import { onMount, tick } from "svelte";
+    import { extractErrorMessage } from "$lib/utils/error";
+    import ErrorAlert from "$lib/components/ui/ErrorAlert.svelte";
+    import { toast } from "$lib/stores/toast";
 
     let { resourceId } = $props<{ resourceId?: string | number }>();
 
@@ -52,7 +55,7 @@
             }
         } catch (e) {
             console.error("Failed to load todos", e);
-            error = "Could not load tasks.";
+            error = await extractErrorMessage(e);
         } finally {
             loading = false;
         }
@@ -65,7 +68,7 @@
         adding = true;
         try {
             const res = await todoApi.create({
-                "resource-id": Number(resourceId),
+                "resource-id": resourceId as string,
                 title: newTitle,
                 status: 0,
             });
@@ -73,9 +76,14 @@
             if (res.ok) {
                 newTitle = "";
                 await loadTodos();
+            } else {
+                const msg = await extractErrorMessage(res);
+                toast.error(msg);
             }
         } catch (e) {
             console.error("Failed to create todo", e);
+            const msg = await extractErrorMessage(e);
+            toast.error(msg);
         } finally {
             adding = false;
         }
@@ -97,6 +105,9 @@
             const res = await todoApi.update(todo.id, { status: newStatus });
             if (!res.ok) {
                 // Revert
+                const msg = await extractErrorMessage(res);
+                toast.error(msg);
+
                 todos = todos.map((t) =>
                     t.id === todo.id
                         ? {
@@ -111,6 +122,8 @@
             }
         } catch (e) {
             console.error("Failed to update status", e);
+            const msg = await extractErrorMessage(e);
+            toast.error(msg);
             // Revert
             todos = todos.map((t) =>
                 t.id === todo.id
@@ -133,9 +146,14 @@
             const res = await todoApi.delete(id);
             if (res.ok) {
                 todos = todos.filter((t) => t.id !== id);
+            } else {
+                const msg = await extractErrorMessage(res);
+                toast.error(msg);
             }
         } catch (e) {
             console.error("Failed to delete todo", e);
+            const msg = await extractErrorMessage(e);
+            toast.error(msg);
         }
     }
 
@@ -162,9 +180,14 @@
                           }
                         : t,
                 );
+            } else {
+                const msg = await extractErrorMessage(res);
+                toast.error(msg);
             }
         } catch (e) {
             console.error("Failed to update title", e);
+            const msg = await extractErrorMessage(e);
+            toast.error(msg);
         } finally {
             editingId = null;
         }
@@ -186,6 +209,9 @@
 </script>
 
 <div class="space-y-4">
+    {#if error}
+        <ErrorAlert {error} />
+    {/if}
     {#if resourceId}
         <form onsubmit={createTodo} class="flex gap-2">
             <input
@@ -293,16 +319,18 @@
                                 {todo.attributes.title}
                             </div>
                         {/if}
-                        {#if !resourceId && resourceMap[todo.attributes["resource-id"]]}
+                        {#if !resourceId && resourceMap[Number(todo.attributes["resource-id"])]}
                             <span
                                 class="text-xs px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 whitespace-nowrap"
                             >
-                                {resourceMap[todo.attributes["resource-id"]]}
+                                {resourceMap[
+                                    Number(todo.attributes["resource-id"])
+                                ]}
                             </span>
                         {/if}
                     </div>
 
-                    {#if ($auth.user?.status && $auth.user.status >= 3) || ($auth.user?.id && Number($auth.user.id) === todo.attributes["created-by"])}
+                    {#if hasPermission($auth.user, "todos:delete:any") || ($auth.user?.id && String($auth.user.id) === String(todo.attributes["created-by"]))}
                         <button
                             onclick={() => deleteTodo(todo.id)}
                             class="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-red-600 transition-all p-1"

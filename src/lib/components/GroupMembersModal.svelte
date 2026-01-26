@@ -1,7 +1,7 @@
 <script lang="ts">
     import { groupApi } from "$lib/api/groups";
     import { userApi } from "$lib/api/users";
-    import { auth } from "$lib/stores/auth";
+    import { auth, hasPermission } from "$lib/stores/auth";
     import {
         Loader2,
         UserPlus,
@@ -224,7 +224,7 @@
 
     // Permissions
     const currentUser = $derived($auth.user);
-    const isAdmin = $derived((currentUser?.status || 0) >= 3);
+    const isAdmin = $derived(hasPermission(currentUser, "groups:manage"));
 
     // We need to know if current user is moderator of THIS group
     const isGroupModerator = $derived(
@@ -244,7 +244,7 @@
         if (targetUser.id === currentUser?.id) return false; // Cannot remove self
 
         // Admin rule: Target Admin can only be removed by Admin
-        if (targetUser.attributes.status >= 3) {
+        if (targetUser.attributes.status >= 4) {
             return isAdmin;
         }
 

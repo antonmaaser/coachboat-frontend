@@ -4,6 +4,8 @@
     import { Loader2 } from "lucide-svelte";
     import TextInput from "$lib/components/ui/TextInput.svelte";
     import SearchableSelect from "$lib/components/ui/SearchableSelect.svelte";
+    import { extractErrorMessage } from "$lib/utils/error";
+    import ErrorAlert from "$lib/components/ui/ErrorAlert.svelte";
     import { onMount } from "svelte";
 
     let { resource = undefined, onSuccess } = $props<{
@@ -66,15 +68,14 @@
             }
 
             if (!res.ok) {
-                const json = await res.json();
-                throw new Error(
-                    json.errors?.[0]?.detail || "Failed to save resource",
-                );
+                error = await extractErrorMessage(res);
+                return;
             }
 
             onSuccess();
         } catch (e: any) {
-            error = e.message;
+            console.error(e);
+            error = await extractErrorMessage(e);
         } finally {
             loading = false;
         }
@@ -83,11 +84,7 @@
 
 <form onsubmit={handleSubmit} class="space-y-4">
     {#if error}
-        <div
-            class="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm"
-        >
-            {error}
-        </div>
+        <ErrorAlert {error} />
     {/if}
 
     <TextInput
