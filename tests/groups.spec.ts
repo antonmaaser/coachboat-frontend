@@ -8,7 +8,7 @@ test.describe('Groups', () => {
 
     const user = {
         ...AUTH_USERS.user,
-        permissions: [...AUTH_USERS.user.permissions, 'groups:view']
+        permissions: Array.from(new Set([...AUTH_USERS.user.permissions, 'groups:view']))
     };
     const group1 = createGroup({ title: 'Training A' });
     const group2 = createGroup({ title: 'Training B' });
@@ -31,6 +31,7 @@ test.describe('Groups', () => {
             [`GET /groups/${group1.id}/feed`]: { data: [] },
             [`GET /groups/${group1.id}/stream`]: { data: [] },
         });
+        await page.goto('/');
     });
 
     test('Lists available groups', async ({ page }) => {
