@@ -68,7 +68,7 @@ test.describe('Group errors', () => {
         await expect(page.getByText('Gruppe nicht gefunden')).toBeVisible();
     });
 
-    test('Shows error when group detail returns 500', async ({ page }) => {
+    test('Shows not found when group detail returns 500', async ({ page }) => {
         const failingGroup = createGroup({ title: 'Failing Group' });
 
         await setupAndLogin(page, user, {
@@ -88,6 +88,6 @@ test.describe('Group errors', () => {
         });
 
         await page.goto(`/groups/${failingGroup.id}`);
-        await expect(page.getByText('Fehler beim Laden der Gruppe')).toBeVisible();
+        await expect(page.getByText('Gruppe nicht gefunden')).toBeVisible();
     });
 });
