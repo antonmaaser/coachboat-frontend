@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { setupMocks } from './test-utils';
 import { createGroup } from './factories';
 import { AUTH_USERS, STORAGE_STATE } from './fixtures/auth';
@@ -48,5 +48,48 @@ test.describe('Groups', () => {
 
         await expect(page).toHaveURL(`/groups/${group1.id}`);
         await expect(page.getByRole('heading', { name: group1.title })).toBeVisible();
+    });
+});
+
+test.describe('Groups empty state', () => {
+    const user = createUser({ status: 2, permissions: ['groups:view'] });
+
+    async function login(page: Page) {
+        await page.goto('/login');
+        await page.fill('input[name="email"]', user.email);
+        await page.fill('input[name="password"]', 'password');
+        await page.click('button[type="submit"]');
+        await expect(page).toHaveURL('/');
+    }
+
+    test('Shows empty state when no groups exist', async ({ page }) => {
+        await setupMocks(page, user, {
+            'GET /groups': { data: [] }
+        });
+
+        await login(page);
+        await page.goto('/groups');
+
+        await expect(page.getByText('Keine Gruppen gefunden.')).toBeVisible();
+    });
+
+    test('Shows loading state while groups are fetched', async ({ page }) => {
+        await setupMocks(page, user, {
+            'GET /groups': async (route) => {
+                await new Promise((resolve) => setTimeout(resolve, 500));
+                await route.fulfill({
+                    status: 200,
+                    contentType: 'application/json',
+                    body: JSON.stringify({ data: [] }),
+                    headers: { 'Access-Control-Allow-Origin': '*' }
+                });
+            }
+        });
+
+        await login(page);
+        await page.goto('/groups');
+
+        await expect(page.getByText('Lädt...')).toBeVisible();
+        await expect(page.getByText('Keine Gruppen gefunden.')).toBeVisible();
     });
 });
