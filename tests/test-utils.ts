@@ -87,8 +87,8 @@ export async function mockApi(page: Page, handlers: Record<string, any>) {
     });
 }
 
-export async function setupAndLogin(page: Page, user: any, extraHandlers: Record<string, any> = {}) {
-    const commonHandlers = {
+export function getCommonHandlers(user: any) {
+    return {
         'AUTH POST /token': {
             access_token: 'fake-access-token',
             refresh_token: 'fake-refresh-token',
@@ -109,10 +109,33 @@ export async function setupAndLogin(page: Page, user: any, extraHandlers: Record
         'GET /resources': [],
         'GET /groups': [],
         'GET /resource-categories': [],
-        'GET /events': [], // Empty default for events
+        'GET /events': [],
     };
+}
 
+export async function setupMocks(page: Page, user: any, extraHandlers: Record<string, any> = {}) {
+    const commonHandlers = getCommonHandlers(user);
     await mockApi(page, { ...commonHandlers, ...extraHandlers });
+
+    // Ensure permissions are correctly set in localStorage for the test
+    if (user.permissions) {
+        await page.addInitScript((permissions) => {
+            try {
+                const stored = localStorage.getItem('coachboat_auth');
+                if (stored) {
+                    const state = JSON.parse(stored);
+                    if (state.user) {
+                        state.user.permissions = permissions;
+                        localStorage.setItem('coachboat_auth', JSON.stringify(state));
+                    }
+                }
+            } catch (e) { }
+        }, user.permissions);
+    }
+}
+
+export async function setupAndLogin(page: Page, user: any, extraHandlers: Record<string, any> = {}) {
+    await setupMocks(page, user, extraHandlers);
 
     await page.goto('/login');
     await page.fill('input[name="email"]', user.email);

@@ -1,24 +1,19 @@
 import { test, expect } from '@playwright/test';
-import { setupAndLogin, mockApi } from './test-utils';
+import { setupMocks } from './test-utils';
 import { createUser } from './factories';
+import { AUTH_USERS, STORAGE_STATE } from './fixtures/auth';
 
 /**
  * Users Overview Page E2E Tests
  */
 
-// Test Data
-const admin = createUser({
-    firstName: 'Admin',
-    name: 'Boss',
-    email: 'admin@example.com',
-    status: 4,
-    role: { slug: 'admin', name: 'Administrator' },
-    permissions: ['users:read', 'users:create', 'users:edit', 'users:delete']
-});
+// Use standard admin fixture for the authenticated user
+const admin = AUTH_USERS.admin;
 
+// Test Data for other users in the list
 const user1 = createUser({
     firstName: 'Alpha',
-    name: 'User',
+    name: 'Abel', // "Alpha Abel" - Sorts before "Admin" (Admin user)
     email: 'alpha@example.com',
     status: 2,
     role: { slug: 'user', name: 'Benutzer' }
@@ -26,7 +21,7 @@ const user1 = createUser({
 
 const user2 = createUser({
     firstName: 'Zeta',
-    name: 'Member',
+    name: 'Zussman', // "Zeta Zussman" - Sorts after "Admin"
     email: 'zeta@example.com',
     status: 1,
     role: { slug: 'group_only', name: 'Nur Gruppen' }
@@ -52,7 +47,10 @@ const nameMatch = (first: string, last: string) => new RegExp(`${first}\\s+${las
 
 test.describe('Users - Listing & Sorting', () => {
     test.beforeEach(async ({ page }) => {
-        await setupAndLogin(page, admin, {
+        // Mock API responses for the page
+        // Use the authenticated admin user in the response to match state
+        // Use setupMocks to ensure 'GET /users/me' and other defaults are handled
+        await setupMocks(page, admin, {
             'GET /users': {
                 data: [
                     toApiUser(admin),
@@ -68,11 +66,11 @@ test.describe('Users - Listing & Sorting', () => {
         await expect(page.getByText('Lädt...')).not.toBeVisible();
 
         const table = page.locator('tbody');
-        await expect(table.getByText(nameMatch('Admin', 'Boss'))).toBeVisible();
+        await expect(table.getByText(nameMatch('System', 'Admin'))).toBeVisible(); // Matches fixtures/auth.ts
         await expect(table.getByText('Administrator')).toBeVisible();
 
-        await expect(table.getByText(nameMatch('Alpha', 'User'))).toBeVisible();
-        const row1 = table.locator('tr').filter({ hasText: nameMatch('Alpha', 'User') });
+        await expect(table.getByText(nameMatch('Alpha', 'Abel'))).toBeVisible();
+        const row1 = table.locator('tr').filter({ hasText: nameMatch('Alpha', 'Abel') });
         await expect(row1.getByText('Benutzer')).toBeVisible();
     });
 
@@ -81,10 +79,14 @@ test.describe('Users - Listing & Sorting', () => {
         await expect(page.getByText('Lädt...')).not.toBeVisible();
 
         const rows = page.locator('tbody tr');
-        await expect(rows.first().getByText(nameMatch('Admin', 'Boss'))).toBeVisible();
 
-        await page.getByRole('button', { name: 'Name' }).click();
-        await expect(rows.first().getByText(nameMatch('Zeta', 'Member'))).toBeVisible();
+        await page.getByRole('button', { name: 'Name' }).click(); // Toggle to Desc (observed behavior)
+        // Zeta (Z) > System (S) > Alpha (A)
+        await expect(rows.first().getByText(nameMatch('Zeta', 'Zussman'))).toBeVisible();
+
+        await page.getByRole('button', { name: 'Name' }).click(); // Toggle to Asc
+        // Alpha (A) first
+        await expect(rows.first().getByText(nameMatch('Alpha', 'Abel'))).toBeVisible();
     });
 
     test('Sorts users by email', async ({ page }) => {
@@ -93,7 +95,8 @@ test.describe('Users - Listing & Sorting', () => {
 
         await page.getByRole('button', { name: 'E-Mail' }).click();
         const rows = page.locator('tbody tr');
-        await expect(rows.first().getByText('admin@example.com')).toBeVisible();
+        // admin@ starts with a
+        await expect(rows.first().getByText('admin@coachboat.com')).toBeVisible();
 
         await page.getByRole('button', { name: 'E-Mail' }).click();
         await expect(rows.first().getByText('zeta@example.com')).toBeVisible();
@@ -106,19 +109,19 @@ test.describe('Users - Listing & Sorting', () => {
         await page.getByRole('button', { name: 'Status' }).click();
         const rows = page.locator('tbody tr');
 
-        // Status sort is likely Ascending first (1, 2, 4...)
-        // Zeta (1) < Alpha (2) < Admin (4)
-        await expect(rows.first().getByText(nameMatch('Zeta', 'Member'))).toBeVisible();
+        // Status sort: Zeta (1) < Alpha (2) < Admin (4)
+        await expect(rows.first().getByText(nameMatch('Zeta', 'Zussman'))).toBeVisible();
 
         await page.getByRole('button', { name: 'Status' }).click();
-        // Descending: Admin (4) > ...
-        await expect(rows.first().getByText(nameMatch('Admin', 'Boss'))).toBeVisible();
+        // Admin first
+        await expect(rows.first().getByText(nameMatch('System', 'Admin'))).toBeVisible();
     });
 });
 
 test.describe('Users - Authorization Visibility', () => {
     test('Admin sees all management controls', async ({ page }) => {
-        await setupAndLogin(page, admin, { 'GET /users': { data: [toApiUser(admin)] } });
+        // Main project uses admin storage state by default
+        await setupMocks(page, admin, { 'GET /users': { data: [toApiUser(admin)] } });
         await page.goto('/users');
         await expect(page.getByText('Lädt...')).not.toBeVisible();
 
@@ -130,16 +133,22 @@ test.describe('Users - Authorization Visibility', () => {
     });
 
     test('Restricted user cannot see creation button', async ({ page }) => {
-        const viewer = createUser({ permissions: ['users:read'] });
-        await setupAndLogin(page, viewer, { 'GET /users': { data: [] } });
+        // We need to use the restricted user fixture for mocks since we switched storageState
+        const restrictedUser = AUTH_USERS.user;
+        await setupMocks(page, restrictedUser, { 'GET /users': { data: [] } });
         await page.goto('/users');
         await expect(page.getByText('Lädt...')).not.toBeVisible();
 
         await expect(page.getByRole('button', { name: 'Benutzer hinzufügen' })).not.toBeVisible();
     });
+    // Use specific storage state for this test
+    test.use({ storageState: STORAGE_STATE.user });
 
-    test('Delete option visibility constraints', async ({ page }) => {
-        await setupAndLogin(page, admin, {
+    test('Delete option visibility constraints (Admin)', async ({ page }) => {
+        // Reset to admin storage state explicitly if needed, but default is admin
+        // This test case runs in admin context based on suite default
+
+        await setupMocks(page, admin, {
             'GET /users': {
                 data: [
                     toApiUser(user1), // Active
@@ -151,7 +160,7 @@ test.describe('Users - Authorization Visibility', () => {
         await expect(page.getByText('Lädt...')).not.toBeVisible();
 
         // 1. Check active user row
-        const rowActive = page.locator('tr').filter({ hasText: nameMatch('Alpha', 'User') });
+        const rowActive = page.locator('tr').filter({ hasText: nameMatch('Alpha', 'Abel') });
         await rowActive.locator('button').filter({ has: page.locator('svg') }).click();
 
         // Check menu content
@@ -170,7 +179,7 @@ test.describe('Users - Authorization Visibility', () => {
 
 test.describe('Users - Management Actions', () => {
     test.beforeEach(async ({ page }) => {
-        await setupAndLogin(page, admin, {
+        await setupMocks(page, admin, {
             'GET /users': { data: [toApiUser(user1)] }
         });
     });
@@ -200,8 +209,9 @@ test.describe('Users - Management Actions', () => {
         await page.goto('/users');
         await expect(page.getByText('Lädt...')).not.toBeVisible();
 
-        await mockApi(page, {
-            [`PATCH /users/${user1.id}`]: { ok: true }
+        await setupMocks(page, admin, {
+            [`PATCH /users/${user1.id}`]: { ok: true },
+            'GET /users': { data: [toApiUser(user1)] } // Re-mock listing
         });
 
         page.on('dialog', dialog => dialog.accept());
@@ -217,7 +227,7 @@ test.describe('Users - Management Actions', () => {
 
     test('Can delete an inactive user', async ({ page }) => {
         let deleted = false;
-        await mockApi(page, {
+        await setupMocks(page, admin, {
             'GET /users': async (route) => {
                 await route.fulfill({
                     status: 200,

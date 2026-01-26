@@ -1,15 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { setupAndLogin, mockApi } from './test-utils';
-import { createUser, createEvent, createResource, createResourceCategory } from './factories';
+import { setupMocks } from './test-utils';
+import { createEvent, createResource, createResourceCategory } from './factories';
+import { AUTH_USERS, STORAGE_STATE } from './fixtures/auth';
 
 /**
  * Events Page E2E Tests
- * 
- * Tests cover:
- * 1. Calendar navigation and display
- * 2. Event creation with different permissions
- * 3. Event editing with owner vs admin permissions
- * 4. Category filtering
  */
 
 // Get today's date for event placement
@@ -37,10 +32,11 @@ const resource2WithCategory = {
 };
 
 test.describe('Events - Calendar Navigation', () => {
-    const user = createUser({ status: 2, permissions: ['events:view'] });
+    test.use({ storageState: STORAGE_STATE.user });
+    const user = AUTH_USERS.user;
 
     test.beforeEach(async ({ page }) => {
-        await setupAndLogin(page, user, {
+        await setupMocks(page, user, {
             'GET /events': { data: [] },
             'GET /resources': { data: [resource1WithCategory, resource2WithCategory] },
             'GET /resource-categories': {
@@ -53,6 +49,7 @@ test.describe('Events - Calendar Navigation', () => {
     });
 
     test('Navigates to events page', async ({ page }) => {
+        await page.goto('/');
         await page.click('text=Kalender anschauen');
         await expect(page).toHaveURL('/events');
         await expect(page.getByRole('heading', { name: 'Buchungen' })).toBeVisible();
@@ -61,25 +58,23 @@ test.describe('Events - Calendar Navigation', () => {
     test('Shows current month and year', async ({ page }) => {
         await page.goto('/events');
 
-        // Month name and year should be visible somewhere on the page
         const monthNames = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
             'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
         const currentMonth = monthNames[today.getMonth()];
 
-        // Just verify the month/year is displayed - navigation controls exist
-        // Using .first() because it might appear in navigation and mobile list
         await expect(page.getByText(currentMonth).first()).toBeVisible();
         await expect(page.getByText(String(year)).first()).toBeVisible();
     });
 });
 
 test.describe('Events - Display & Filtering', () => {
-    const user = createUser({ status: 2, permissions: ['events:view'] });
+    test.use({ storageState: STORAGE_STATE.user });
+    const user = AUTH_USERS.user;
     const event1 = createEvent({ title: 'Training Session', date: dateStr, resource: resource1._id });
     const event2 = createEvent({ title: 'Equipment Check', date: dateStr, resource: resource2._id });
 
     test.beforeEach(async ({ page }) => {
-        await setupAndLogin(page, user, {
+        await setupMocks(page, user, {
             'GET /events': {
                 data: [
                     {
@@ -114,16 +109,12 @@ test.describe('Events - Display & Filtering', () => {
 
     test('Displays events on calendar', async ({ page }) => {
         await page.goto('/events');
-
-        // Check desktop grid for events
         await expect(page.locator('.md\\:grid').getByText('Training Session').first()).toBeVisible();
         await expect(page.locator('.md\\:grid').getByText('Equipment Check').first()).toBeVisible();
     });
 
     test('Shows category filter buttons', async ({ page }) => {
         await page.goto('/events');
-
-        // Category buttons should be visible
         await expect(page.getByRole('button', { name: 'Alle' })).toBeVisible();
         await expect(page.getByRole('button', { name: 'Boote' })).toBeVisible();
         await expect(page.getByRole('button', { name: 'Zubehör' })).toBeVisible();
@@ -131,38 +122,27 @@ test.describe('Events - Display & Filtering', () => {
 
     test('Filters events by category', async ({ page }) => {
         await page.goto('/events');
-
-        // Click on "Boote" category filter
         await page.getByRole('button', { name: 'Boote' }).click();
-
-        // Training Session should be visible (uses resource1 in category1)
         await expect(page.locator('.md\\:grid').getByText('Training Session').first()).toBeVisible();
-
-        // Equipment Check should be hidden (uses resource2 in category2)
         await expect(page.locator('.md\\:grid').getByText('Equipment Check')).not.toBeVisible();
     });
 
     test('Shows "Alle" resets filter', async ({ page }) => {
         await page.goto('/events');
-
-        // Filter by category
         await page.getByRole('button', { name: 'Boote' }).click();
-
-        // Then click "Alle" to reset
         await page.getByRole('button', { name: 'Alle' }).click();
-
-        // Both events should be visible again
         await expect(page.locator('.md\\:grid').getByText('Training Session').first()).toBeVisible();
         await expect(page.locator('.md\\:grid').getByText('Equipment Check').first()).toBeVisible();
     });
 });
 
 test.describe('Events - Event Details Modal', () => {
-    const user = createUser({ firstName: 'Max', name: 'Mustermann', status: 2, permissions: ['events:view'] });
+    test.use({ storageState: STORAGE_STATE.user });
+    const user = AUTH_USERS.user;
     const event = createEvent({ title: 'Detailed Event', date: dateStr, resource: resource1._id, createdBy: user.id });
 
     test.beforeEach(async ({ page }) => {
-        await setupAndLogin(page, user, {
+        await setupMocks(page, user, {
             'GET /events': {
                 data: [{
                     id: event._id,
@@ -184,11 +164,7 @@ test.describe('Events - Event Details Modal', () => {
 
     test('Opens event details modal when clicking event', async ({ page }) => {
         await page.goto('/events');
-
-        // Click on the event
         await page.locator('.md\\:grid').getByText('Detailed Event').first().click();
-
-        // Modal should appear with event title
         await expect(page.getByRole('heading', { name: 'Detailed Event' })).toBeVisible();
         await expect(page.getByText('Buchungsdetails')).toBeVisible();
     });
@@ -196,8 +172,6 @@ test.describe('Events - Event Details Modal', () => {
     test('Shows event time range in details', async ({ page }) => {
         await page.goto('/events');
         await page.locator('.md\\:grid').getByText('Detailed Event').first().click();
-
-        // Wait for modal and check that times are displayed
         const modal = page.getByRole('dialog');
         await expect(modal.getByText('09:00')).toBeVisible();
         await expect(modal.getByText('11:00')).toBeVisible();
@@ -206,8 +180,6 @@ test.describe('Events - Event Details Modal', () => {
     test('Shows resource/coachboat in details', async ({ page }) => {
         await page.goto('/events');
         await page.locator('.md\\:grid').getByText('Detailed Event').first().click();
-
-        // Scope to modal dialog, resource name should appear
         const modal = page.getByRole('dialog');
         await expect(modal.getByText('Coachboat Alpha')).toBeVisible();
     });
@@ -215,50 +187,48 @@ test.describe('Events - Event Details Modal', () => {
     test('Shows creator name in details', async ({ page }) => {
         await page.goto('/events');
         await page.locator('.md\\:grid').getByText('Detailed Event').first().click();
-
-        // Creator name should appear
-        await expect(page.getByText('Max Mustermann')).toBeVisible();
+        await expect(page.getByText(`${user.firstName} ${user.name}`)).toBeVisible();
     });
 });
 
-test.describe('Events - Creation Permissions', () => {
+
+
+test.describe('Events - Creation Permissions (Restricted)', () => {
+    test.use({ storageState: STORAGE_STATE.group_only });
     const resource = createResource({ title: 'Booking Boat' });
     const resourceData = { id: resource._id, attributes: { ...resource, 'category-id': category1.id } };
 
     test('User WITHOUT events:create cannot see create button', async ({ page }) => {
-        const basicUser = createUser({ status: 1, permissions: ['events:view'] });
-
-        await setupAndLogin(page, basicUser, {
+        const basicUser = AUTH_USERS.group_only;
+        await setupMocks(page, basicUser, {
             'GET /events': { data: [] },
             'GET /resources': { data: [resourceData] },
             'GET /resource-categories': { data: [] }
         });
-
         await page.goto('/events');
-
-        // Create button should NOT be visible
         await expect(page.getByRole('button', { name: 'Neue Buchung' })).not.toBeVisible();
     });
+});
+
+test.describe('Events - Creation Permissions (Moderator)', () => {
+    test.use({ storageState: STORAGE_STATE.moderator });
+    const resource = createResource({ title: 'Booking Boat' });
+    const resourceData = { id: resource._id, attributes: { ...resource, 'category-id': category1.id } };
+    const modUser = AUTH_USERS.moderator;
 
     test('User WITH events:create can see create button', async ({ page }) => {
-        const modUser = createUser({ status: 2, permissions: ['events:view', 'events:create'] });
-
-        await setupAndLogin(page, modUser, {
+        await setupMocks(page, modUser, {
             'GET /events': { data: [] },
             'GET /resources': { data: [resourceData] },
             'GET /resource-categories': { data: [] }
         });
 
         await page.goto('/events');
-
-        // Create button SHOULD be visible
         await expect(page.getByRole('button', { name: 'Neue Buchung' })).toBeVisible();
     });
 
     test('Opens create modal when clicking create button', async ({ page }) => {
-        const modUser = createUser({ status: 2, permissions: ['events:view', 'events:create'] });
-
-        await setupAndLogin(page, modUser, {
+        await setupMocks(page, modUser, {
             'GET /events': { data: [] },
             'GET /resources': { data: [resourceData] },
             'GET /resource-categories': { data: [] }
@@ -267,23 +237,18 @@ test.describe('Events - Creation Permissions', () => {
         await page.goto('/events');
         await page.getByRole('button', { name: 'Neue Buchung' }).click();
 
-        // Modal should open with form
         await expect(page.getByText('Neue Buchung erstellen')).toBeVisible();
         await expect(page.getByLabel('Titel')).toBeVisible();
         await expect(page.getByLabel('Datum')).toBeVisible();
     });
 
     test('Can create a new event', async ({ page }) => {
-        const modUser = createUser({ status: 2, permissions: ['events:view', 'events:create'] });
-        let createdEvent: any = null;
-
-        await setupAndLogin(page, modUser, {
+        await setupMocks(page, modUser, {
             'GET /events': { data: [] },
             'GET /resources': { data: [resourceData] },
             'GET /resource-categories': { data: [] },
             'POST /events': async (route) => {
                 const body = await route.request().postDataJSON();
-                createdEvent = body;
                 await route.fulfill({
                     status: 201,
                     contentType: 'application/json',
@@ -295,18 +260,11 @@ test.describe('Events - Creation Permissions', () => {
         await page.goto('/events');
         await page.getByRole('button', { name: 'Neue Buchung' }).click();
 
-        // Fill the form
         await page.getByLabel('Titel').fill('My New Booking');
         await page.getByLabel('Datum').fill(dateStr);
-
-        // Select resource (using the searchable select)
         await page.locator('text=Coachboat auswählen').click();
         await page.getByText('Booking Boat').click();
-
-        // Submit
         await page.getByRole('button', { name: 'Buchung erstellen' }).click();
-
-        // Modal should close
         await expect(page.getByText('Neue Buchung erstellen')).not.toBeVisible();
     });
 });
@@ -315,137 +273,142 @@ test.describe('Events - Edit Permissions', () => {
     const resource = createResource({ title: 'Edit Test Boat' });
     const resourceData = { id: resource._id, attributes: { ...resource, 'category-id': category1.id } };
 
-    test('Owner can see edit button for their own event', async ({ page }) => {
-        const owner = createUser({ firstName: 'Owner', name: 'User', status: 2, permissions: ['events:view'] });
-        const ownEvent = createEvent({ title: 'My Event', date: dateStr, resource: resource._id, createdBy: owner.id });
+    test.describe('As Owner', () => {
+        test.use({ storageState: STORAGE_STATE.user });
+        const owner = AUTH_USERS.user;
 
-        await setupAndLogin(page, owner, {
-            'GET /events': {
-                data: [{
-                    id: ownEvent._id,
-                    attributes: {
-                        ...ownEvent,
-                        'start-date': 10 * 3600,
-                        'end-date': 12 * 3600,
-                        'is-recurring': false,
-                        'created-by': owner.id
-                    }
-                }]
-            },
-            'GET /resources': { data: [resourceData] },
-            'GET /resource-categories': { data: [] },
-            [`GET /resources/${resource._id}`]: { data: resourceData },
-            [`GET /users/${owner.id}`]: { data: { id: owner.id, attributes: { 'first-name': owner.firstName, name: owner.name } } }
+        test('Owner can see edit button for their own event', async ({ page }) => {
+            const ownEvent = createEvent({ title: 'My Event', date: dateStr, resource: resource._id, createdBy: owner.id });
+
+            await setupMocks(page, owner, {
+                'GET /events': {
+                    data: [{
+                        id: ownEvent._id,
+                        attributes: {
+                            ...ownEvent,
+                            'start-date': 10 * 3600,
+                            'end-date': 12 * 3600,
+                            'is-recurring': false,
+                            'created-by': owner.id
+                        }
+                    }]
+                },
+                'GET /resources': { data: [resourceData] },
+                'GET /resource-categories': { data: [] },
+                [`GET /resources/${resource._id}`]: { data: resourceData },
+                [`GET /users/${owner.id}`]: { data: { id: owner.id, attributes: { 'first-name': owner.firstName, name: owner.name } } }
+            });
+
+            await page.goto('/events');
+            await page.locator('.md\\:grid').getByText('My Event').first().click();
+            await expect(page.getByRole('button', { name: 'Bearbeiten' })).toBeVisible();
         });
 
-        await page.goto('/events');
-        await page.locator('.md\\:grid').getByText('My Event').first().click();
+        test('Edit button opens edit modal with prefilled data', async ({ page }) => {
+            const editEvent = createEvent({ title: 'Event To Edit', date: dateStr, resource: resource._id, createdBy: owner.id });
 
-        // Edit button should be visible for owner
-        await expect(page.getByRole('button', { name: 'Bearbeiten' })).toBeVisible();
+            await setupMocks(page, owner, {
+                'GET /events': {
+                    data: [{
+                        id: editEvent._id,
+                        attributes: {
+                            ...editEvent,
+                            'start-date': 11 * 3600,
+                            'end-date': 13 * 3600,
+                            'is-recurring': false,
+                            'created-by': owner.id
+                        }
+                    }]
+                },
+                'GET /resources': { data: [resourceData] },
+                'GET /resource-categories': { data: [] },
+                [`GET /resources/${resource._id}`]: { data: resourceData },
+                [`GET /users/${owner.id}`]: { data: { id: owner.id, attributes: { 'first-name': owner.firstName, name: owner.name } } }
+            });
+
+            await page.goto('/events');
+            await page.locator('.md\\:grid').getByText('Event To Edit').first().click();
+            await page.getByRole('button', { name: 'Bearbeiten' }).click();
+
+            await expect(page.getByText('Buchung bearbeiten')).toBeVisible();
+            await expect(page.getByLabel('Titel')).toHaveValue('Event To Edit');
+        });
     });
 
-    test('Non-owner WITHOUT events:edit:any cannot see edit button', async ({ page }) => {
-        const otherOwner = createUser({ firstName: 'Other', name: 'Person' });
-        const viewer = createUser({ firstName: 'Viewer', name: 'User', status: 2, permissions: ['events:view'] });
-        const otherEvent = createEvent({ title: 'Other Event', date: dateStr, resource: resource._id, createdBy: otherOwner.id });
+    test.describe('As Non-Owner View Only', () => {
+        test.use({ storageState: STORAGE_STATE.group_only });
+        const viewer = AUTH_USERS.group_only;
+        const otherOwner = AUTH_USERS.admin; // Just someone else
 
-        await setupAndLogin(page, viewer, {
-            'GET /events': {
-                data: [{
-                    id: otherEvent._id,
-                    attributes: {
-                        ...otherEvent,
-                        'start-date': 14 * 3600,
-                        'end-date': 16 * 3600,
-                        'is-recurring': false,
-                        'created-by': otherOwner.id
-                    }
-                }]
-            },
-            'GET /resources': { data: [resourceData] },
-            'GET /resource-categories': { data: [] },
-            [`GET /resources/${resource._id}`]: { data: resourceData },
-            [`GET /users/${otherOwner.id}`]: { data: { id: otherOwner.id, attributes: { 'first-name': otherOwner.firstName, name: otherOwner.name } } }
+        test('Non-owner WITHOUT events:edit:any cannot see edit button', async ({ page }) => {
+            const otherEvent = createEvent({ title: 'Other Event', date: dateStr, resource: resource._id, createdBy: otherOwner.id });
+
+            await setupMocks(page, viewer, {
+                'GET /events': {
+                    data: [{
+                        id: otherEvent._id,
+                        attributes: {
+                            ...otherEvent,
+                            'start-date': 14 * 3600,
+                            'end-date': 16 * 3600,
+                            'is-recurring': false,
+                            'created-by': otherOwner.id
+                        }
+                    }]
+                },
+                'GET /resources': { data: [resourceData] },
+                'GET /resource-categories': { data: [] },
+                [`GET /resources/${resource._id}`]: { data: resourceData },
+                [`GET /users/${otherOwner.id}`]: { data: { id: otherOwner.id, attributes: { 'first-name': otherOwner.firstName, name: otherOwner.name } } }
+            });
+
+            await page.goto('/events');
+            await page.locator('.md\\:grid').getByText('Other Event').first().click();
+            await expect(page.getByRole('button', { name: 'Bearbeiten' })).not.toBeVisible();
         });
-
-        await page.goto('/events');
-        await page.locator('.md\\:grid').getByText('Other Event').first().click();
-
-        // Edit button should NOT be visible
-        await expect(page.getByRole('button', { name: 'Bearbeiten' })).not.toBeVisible();
     });
 
-    test('Admin WITH events:edit:any CAN see edit button for others events', async ({ page }) => {
-        const otherOwner = createUser({ firstName: 'Other', name: 'Person' });
-        const admin = createUser({ firstName: 'Admin', name: 'User', status: 3, permissions: ['events:view', 'events:create', 'events:edit:any'] });
-        const otherEvent = createEvent({ title: 'Admin Edit Event', date: dateStr, resource: resource._id, createdBy: otherOwner.id });
+    test.describe('As Admin', () => {
+        test.use({ storageState: STORAGE_STATE.admin }); // Default anyway
+        const admin = AUTH_USERS.admin;
+        const otherOwner = AUTH_USERS.user;
 
-        await setupAndLogin(page, admin, {
-            'GET /events': {
-                data: [{
-                    id: otherEvent._id,
-                    attributes: {
-                        ...otherEvent,
-                        'start-date': 15 * 3600,
-                        'end-date': 17 * 3600,
-                        'is-recurring': false,
-                        'created-by': otherOwner.id
-                    }
-                }]
-            },
-            'GET /resources': { data: [resourceData] },
-            'GET /resource-categories': { data: [] },
-            [`GET /resources/${resource._id}`]: { data: resourceData },
-            [`GET /users/${otherOwner.id}`]: { data: { id: otherOwner.id, attributes: { 'first-name': otherOwner.firstName, name: otherOwner.name } } }
+        test('Admin WITH events:edit:any CAN see edit button for others events', async ({ page }) => {
+            const otherEvent = createEvent({ title: 'Admin Edit Event', date: dateStr, resource: resource._id, createdBy: otherOwner.id });
+
+            await setupMocks(page, admin, {
+                'GET /events': {
+                    data: [{
+                        id: otherEvent._id,
+                        attributes: {
+                            ...otherEvent,
+                            'start-date': 15 * 3600,
+                            'end-date': 17 * 3600,
+                            'is-recurring': false,
+                            'created-by': otherOwner.id
+                        }
+                    }]
+                },
+                'GET /resources': { data: [resourceData] },
+                'GET /resource-categories': { data: [] },
+                [`GET /resources/${resource._id}`]: { data: resourceData },
+                [`GET /users/${otherOwner.id}`]: { data: { id: otherOwner.id, attributes: { 'first-name': otherOwner.firstName, name: otherOwner.name } } }
+            });
+
+            await page.goto('/events');
+            await page.locator('.md\\:grid').getByText('Admin Edit Event').first().click();
+            await expect(page.getByRole('button', { name: 'Bearbeiten' })).toBeVisible();
         });
-
-        await page.goto('/events');
-        await page.locator('.md\\:grid').getByText('Admin Edit Event').first().click();
-
-        // Edit button SHOULD be visible for admin
-        await expect(page.getByRole('button', { name: 'Bearbeiten' })).toBeVisible();
-    });
-
-    test('Edit button opens edit modal with prefilled data', async ({ page }) => {
-        const owner = createUser({ firstName: 'Owner', name: 'Edit', status: 2, permissions: ['events:view', 'events:create'] });
-        const editEvent = createEvent({ title: 'Event To Edit', date: dateStr, resource: resource._id, createdBy: owner.id });
-
-        await setupAndLogin(page, owner, {
-            'GET /events': {
-                data: [{
-                    id: editEvent._id,
-                    attributes: {
-                        ...editEvent,
-                        'start-date': 11 * 3600,
-                        'end-date': 13 * 3600,
-                        'is-recurring': false,
-                        'created-by': owner.id
-                    }
-                }]
-            },
-            'GET /resources': { data: [resourceData] },
-            'GET /resource-categories': { data: [] },
-            [`GET /resources/${resource._id}`]: { data: resourceData },
-            [`GET /users/${owner.id}`]: { data: { id: owner.id, attributes: { 'first-name': owner.firstName, name: owner.name } } }
-        });
-
-        await page.goto('/events');
-        await page.locator('.md\\:grid').getByText('Event To Edit').first().click();
-        await page.getByRole('button', { name: 'Bearbeiten' }).click();
-
-        // Edit modal should open with title prefilled
-        await expect(page.getByText('Buchung bearbeiten')).toBeVisible();
-        await expect(page.getByLabel('Titel')).toHaveValue('Event To Edit');
     });
 });
 
 test.describe('Events - Recurring Events', () => {
-    const user = createUser({ status: 2, permissions: ['events:view'] });
+    test.use({ storageState: STORAGE_STATE.user });
+    const user = AUTH_USERS.user;
     const recurringEvent = createEvent({ title: 'Weekly Training', date: dateStr });
 
     test('Shows recurring event indicator in details', async ({ page }) => {
-        await setupAndLogin(page, user, {
+        await setupMocks(page, user, {
             'GET /events': {
                 data: [{
                     id: recurringEvent._id,
