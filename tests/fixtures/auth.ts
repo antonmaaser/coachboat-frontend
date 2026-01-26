@@ -7,7 +7,21 @@ export const AUTH_USERS = {
         password: 'password',
         status: 4,
         role: { slug: 'admin', name: 'Administrator' },
-        permissions: ['users:read', 'users:create', 'users:edit', 'users:delete', 'events:read', 'events:create', 'events:edit:any', 'events:delete:any']
+        permissions: [
+            'users:read',
+            'users:create',
+            'users:edit',
+            'users:delete',
+            'events:read',
+            'events:create',
+            'events:edit:any',
+            'events:delete:any',
+            'groups:view',
+            'groups:create',
+            'groups:edit',
+            'groups:delete',
+            'groups:manage'
+        ]
     },
     moderator: {
         id: 'user-mod-uuid',
@@ -27,7 +41,7 @@ export const AUTH_USERS = {
         password: 'password',
         status: 2,
         role: { slug: 'user', name: 'Benutzer' },
-        permissions: ['events:read', 'events:create:own', 'users:read']
+        permissions: ['events:read', 'events:create:own', 'users:read', 'groups:view']
     },
     group_only: {
         id: 'user-group-uuid',
