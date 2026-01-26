@@ -28,8 +28,9 @@ test.describe('Groups', () => {
     });
 
     test('Lists available groups', async ({ page }) => {
-        await page.click('text=Gruppen verwalten');
+        await page.getByRole('link', { name: /Gruppen verwalten/i }).click();
         await expect(page).toHaveURL('/groups');
+        await expect(page.getByRole('heading', { name: 'Gruppen' })).toBeVisible();
 
         await expect(page.getByText('Training A')).toBeVisible();
         await expect(page.getByText('Training B')).toBeVisible();
@@ -37,7 +38,7 @@ test.describe('Groups', () => {
 
     test('Navigates to group details', async ({ page }) => {
         await page.goto('/groups');
-        await page.click(`text=${group1.title}`);
+        await page.getByRole('link', { name: group1.title }).click();
 
         await expect(page).toHaveURL(`/groups/${group1.id}`);
         await expect(page.getByRole('heading', { name: group1.title })).toBeVisible();
