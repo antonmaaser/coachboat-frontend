@@ -120,14 +120,18 @@
                 {#if showMenu}
                     <div
                         class="absolute right-0 mt-1 w-32 bg-white dark:bg-zinc-800 rounded shadow-lg border border-zinc-200 dark:border-zinc-700 z-10 py-1"
+                        role="menu"
+                        tabindex="-1"
                         onclick={() => (showMenu = false)}
+                        onkeydown={(e) =>
+                            e.key === "Escape" && (showMenu = false)}
                     >
-                        <!-- svelte-ignore a11y_click_events_have_key_events -->
-                        <!-- svelte-ignore a11y_no_static_element_interactions -->
-                        <div
-                            class="fixed inset-0 z-[-1]"
+                        <button
+                            type="button"
+                            class="fixed inset-0 z-[-1] cursor-default w-full h-full block"
                             onclick={() => (showMenu = false)}
-                        ></div>
+                            aria-label="Close menu"
+                        ></button>
 
                         {#if isAuthor}
                             <button

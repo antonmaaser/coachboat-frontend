@@ -11,6 +11,7 @@
         class: className = "",
         searchable = true,
         onchange,
+        id = crypto.randomUUID(),
     } = $props<{
         options: { value: string; label: string; [key: string]: any }[];
         value: string | null;
@@ -19,6 +20,7 @@
         class?: string;
         searchable?: boolean;
         onchange?: (value: string) => void;
+        id?: string;
     }>();
 
     let isOpen = $state(false);
@@ -68,6 +70,7 @@
 <div class={className}>
     {#if label}
         <label
+            for={id}
             class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1"
         >
             {label}
@@ -77,6 +80,7 @@
     <div class="relative" use:clickOutside={close}>
         <button
             type="button"
+            {id}
             onclick={toggleOpen}
             class="relative w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 py-2 pl-3 pr-10 text-left shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm transition-all"
         >

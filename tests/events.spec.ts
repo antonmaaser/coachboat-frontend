@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Route } from '@playwright/test';
 import { setupMocks } from './test-utils';
 import { createEvent, createResource, createResourceCategory } from './factories';
 import { AUTH_USERS, STORAGE_STATE } from './fixtures/auth';
@@ -247,7 +247,7 @@ test.describe('Events - Creation Permissions (Moderator)', () => {
             'GET /events': { data: [] },
             'GET /resources': { data: [resourceData] },
             'GET /resource-categories': { data: [] },
-            'POST /events': async (route) => {
+            'POST /events': async (route: Route) => {
                 const body = await route.request().postDataJSON();
                 await route.fulfill({
                     status: 201,

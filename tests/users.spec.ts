@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Route } from '@playwright/test';
 import { setupMocks } from './test-utils';
 import { createUser } from './factories';
 import { AUTH_USERS, STORAGE_STATE } from './fixtures/auth';
@@ -228,14 +228,14 @@ test.describe('Users - Management Actions', () => {
     test('Can delete an inactive user', async ({ page }) => {
         let deleted = false;
         await setupMocks(page, admin, {
-            'GET /users': async (route) => {
+            'GET /users': async (route: Route) => {
                 await route.fulfill({
                     status: 200,
                     contentType: 'application/json',
                     body: JSON.stringify({ data: deleted ? [] : [toApiUser(inactiveUser)] })
                 });
             },
-            [`DELETE /users/${inactiveUser.id}`]: async (route) => {
+            [`DELETE /users/${inactiveUser.id}`]: async (route: Route) => {
                 deleted = true;
                 await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) });
             }

@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Route } from '@playwright/test';
 import { setupMocks } from './test-utils';
 import { createGroup } from './factories';
 import { AUTH_USERS, STORAGE_STATE } from './fixtures/auth';
@@ -80,7 +80,7 @@ test.describe('Groups empty state', () => {
 
     test('Shows loading state while groups are fetched', async ({ page }) => {
         await setupMocks(page, user, {
-            'GET /groups': async (route) => {
+            'GET /groups': async (route: Route) => {
                 await new Promise((resolve) => setTimeout(resolve, 500));
                 await route.fulfill({
                     status: 200,
@@ -109,7 +109,7 @@ test.describe('Group errors', () => {
         const missingGroup = createGroup({ title: 'Missing Group' });
 
         await setupMocks(page, user, {
-            [`GET /groups/${missingGroup.id}`]: async (route) => {
+            [`GET /groups/${missingGroup.id}`]: async (route: Route) => {
                 await route.fulfill({
                     status: 404,
                     contentType: 'application/json',
@@ -132,7 +132,7 @@ test.describe('Group errors', () => {
         const failingGroup = createGroup({ title: 'Failing Group' });
 
         await setupMocks(page, user, {
-            [`GET /groups/${failingGroup.id}`]: async (route) => {
+            [`GET /groups/${failingGroup.id}`]: async (route: Route) => {
                 await route.fulfill({
                     status: 500,
                     contentType: 'application/json',

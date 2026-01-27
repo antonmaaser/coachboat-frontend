@@ -36,7 +36,7 @@
     // Based on Login page styles
     const baseInputClasses =
         "block w-full rounded-lg border-0 bg-zinc-50 dark:bg-zinc-900/50 text-zinc-900 dark:text-white ring-1 ring-inset ring-zinc-200 dark:ring-zinc-700 placeholder:text-zinc-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 transition-all disabled:opacity-50 disabled:cursor-not-allowed";
-    const paddingClasses = Icon ? "pl-10 py-3" : "px-3 py-2";
+    const paddingClasses = $derived(Icon ? "pl-10 py-3" : "px-3 py-2");
 </script>
 
 <div class={className}>

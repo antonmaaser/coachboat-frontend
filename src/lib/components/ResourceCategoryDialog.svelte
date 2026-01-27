@@ -116,6 +116,7 @@
                             {#each ["#ef4444", "#f97316", "#f59e0b", "#84cc16", "#22c55e", "#10b981", "#14b8a6", "#06b6d4", "#0ea5e9", "#3b82f6", "#6366f1", "#8b5cf6", "#a855f7", "#d946ef", "#ec4899", "#f43f5e", "#64748b", "#71717a"] as preset}
                                 <button
                                     type="button"
+                                    aria-label="Farbe {preset}"
                                     class="w-6 h-6 rounded-full border-2 transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                     class:border-zinc-300={color !== preset}
                                     class:dark:border-zinc-600={color !==

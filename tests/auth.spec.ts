@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Route } from '@playwright/test';
 import { mockApi } from './test-utils';
 import { createUser } from './factories';
 
@@ -50,7 +50,7 @@ test.describe('Authentication', () => {
 
     test('Login failure shows error message', async ({ page }) => {
         await mockApi(page, {
-            'AUTH POST /token': async (route) => {
+            'AUTH POST /token': async (route: Route) => {
                 await route.fulfill({
                     status: 401,
                     contentType: 'application/json',
