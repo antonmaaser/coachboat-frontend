@@ -39,11 +39,10 @@ test.describe('Groups', () => {
             [`GET /groups/${group1.id}/feed`]: { data: [] },
             [`GET /groups/${group1.id}/stream`]: { data: [] },
         });
-        await page.goto('/'); // Reset to home for clean navigation start if needed, though individual tests often nav
+        await page.goto('/'); // Reset to home for clean navigation start if needed
     });
 
     test('Lists available groups', async ({ page }) => {
-        // Reset to home implies we might be there, but let's be explicit for the test flow
         await page.goto('/');
 
         await page.click('text=Gruppen verwalten');
@@ -65,8 +64,6 @@ test.describe('Groups', () => {
 test.describe('Groups empty state', () => {
     test.use({ storageState: STORAGE_STATE.user });
 
-    // We reuse the basic user but might not need extra permissions if we are just testing empty states?
-    // Actually the app might hide the groups nav if no perms. So let's add it.
     const user = {
         ...AUTH_USERS.user,
         permissions: Array.from(new Set([...AUTH_USERS.user.permissions, 'groups:view']))
@@ -112,12 +109,6 @@ test.describe('Group errors', () => {
         const missingGroup = createGroup({ title: 'Missing Group' });
 
         await setupMocks(page, user, {
-            [`GET /groups/${missingGroup.id}`]: {
-                error: 'Not Found'
-                // mockApi handles simple objects with 200 OK by default, 
-                // but we need 404. explicit handler needed if we want status code.
-            },
-            // We can override the specific route with a function for status code
             [`GET /groups/${missingGroup.id}`]: async (route) => {
                 await route.fulfill({
                     status: 404,
@@ -126,7 +117,6 @@ test.describe('Group errors', () => {
                     headers: { 'Access-Control-Allow-Origin': '*' }
                 });
             },
-            // Mocks for related calls that might happen before/during the error check
             [`GET /groups/${missingGroup.id}/posts`]: { data: [] },
             [`GET /groups/${missingGroup.id}/activity`]: { data: [] },
             [`GET /groups/${missingGroup.id}/members`]: { data: [] },
@@ -150,7 +140,6 @@ test.describe('Group errors', () => {
                     headers: { 'Access-Control-Allow-Origin': '*' }
                 });
             },
-            // Mock sub-resources to prevent 404s in console if fetched in parallel
             [`GET /groups/${failingGroup.id}/posts`]: { data: [] },
             [`GET /groups/${failingGroup.id}/activity`]: { data: [] },
             [`GET /groups/${failingGroup.id}/members`]: { data: [] },
@@ -159,7 +148,6 @@ test.describe('Group errors', () => {
         });
 
         await page.goto(`/groups/${failingGroup.id}`);
-        // Assuming the UI handles 500 same as 404 or generic error
         await expect(page.getByText('Gruppe nicht gefunden')).toBeVisible();
     });
 });
