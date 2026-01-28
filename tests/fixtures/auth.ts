@@ -20,7 +20,11 @@ export const AUTH_USERS = {
             'groups:create',
             'groups:edit',
             'groups:delete',
-            'groups:manage'
+            'groups:manage',
+            'resources:view',
+            'resources:create',
+            'resources:edit',
+            'resources:delete'
         ]
     },
     moderator: {

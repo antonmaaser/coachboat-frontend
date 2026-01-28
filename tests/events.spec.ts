@@ -187,7 +187,8 @@ test.describe('Events - Event Details Modal', () => {
     test('Shows creator name in details', async ({ page }) => {
         await page.goto('/events');
         await page.locator('.md\\:grid').getByText('Detailed Event').first().click();
-        await expect(page.getByText(`${user.firstName} ${user.name}`)).toBeVisible();
+        const modal = page.getByRole('dialog');
+        await expect(modal.getByText(`${user.firstName} ${user.name}`)).toBeVisible();
     });
 });
 

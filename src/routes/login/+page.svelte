@@ -61,6 +61,7 @@
                             name: attrs.name,
                             firstName: attrs["first-name"] || attrs.firstName,
                             status: attrs.status,
+                            isActive: attrs["is-active"],
                             permissions: attrs.permissions,
                         },
                     }));

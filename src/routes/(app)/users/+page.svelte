@@ -143,8 +143,11 @@
         showModal = true;
     }
 
-    function openEditModal(user: any) {
-        editingUser = user;
+    function openEditModal(
+        user: any,
+        initialTab: "details" | "permissions" = "details",
+    ) {
+        editingUser = { ...user, _initialTab: initialTab };
         showModal = true;
     }
 
@@ -392,6 +395,21 @@
                                                         />
                                                         Passwort zurücksetzen
                                                     </button>
+                                                    <button
+                                                        onclick={() => {
+                                                            activeMenu = null;
+                                                            openEditModal(
+                                                                user,
+                                                                "permissions",
+                                                            );
+                                                        }}
+                                                        class="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2"
+                                                    >
+                                                        <Shield
+                                                            class="w-4 h-4"
+                                                        />
+                                                        Berechtigungen
+                                                    </button>
                                                 {/if}
                                                 {#if hasPermission($auth.user, "users:delete") && user.attributes.status < 1}
                                                     <button
@@ -426,7 +444,11 @@
         title={editingUser ? "Benutzer bearbeiten" : "Benutzer hinzufügen"}
     >
         {#key editingUser?.id || "new"}
-            <UserForm user={editingUser} onSuccess={handleSuccess} />
+            <UserForm
+                user={editingUser}
+                onSuccess={handleSuccess}
+                initialTab={editingUser?._initialTab || "details"}
+            />
         {/key}
     </Modal>
 

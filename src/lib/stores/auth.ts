@@ -7,6 +7,7 @@ export interface User {
     name?: string;
     firstName?: string;
     status?: number; // 0=inactive, 1=active, 3=admin etc.
+    isActive?: boolean;
     permissions?: string[]; // RBAC permissions
 }
 

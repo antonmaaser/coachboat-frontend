@@ -269,6 +269,7 @@
                                                 ? null
                                                 : resource.id)}
                                     class="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                                    aria-label="Optionen"
                                 >
                                     <MoreVertical class="w-5 h-5" />
                                 </button>

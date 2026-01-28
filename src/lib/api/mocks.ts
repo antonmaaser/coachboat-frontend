@@ -7,7 +7,17 @@ export const mockUsers = [
             name: 'Doe',
             'first-name': 'John',
             email: 'admin@example.com',
-            status: 3 // Admin
+            status: 3, // Admin
+            'is-active': true,
+            role: { slug: 'admin', name: 'Administrator' },
+            effective_permissions: {
+                global: {
+                    role: 'admin',
+                    roleName: 'Administrator',
+                    permissions: ['users:create', 'users:edit', 'users:delete', 'items:read']
+                },
+                contexts: []
+            }
         }
     },
     {
@@ -17,7 +27,25 @@ export const mockUsers = [
             name: 'Smith',
             'first-name': 'Jane',
             email: 'user@example.com',
-            status: 1 // Active
+            status: 1, // Active
+            'is-active': true,
+            role: { slug: 'user', name: 'Benutzer' },
+            effective_permissions: {
+                global: {
+                    role: 'user',
+                    roleName: 'Benutzer',
+                    permissions: ['items:read']
+                },
+                contexts: [
+                    {
+                        id: 'group_test_1',
+                        name: 'Test Group A',
+                        role: 'coach',
+                        roleName: 'Trainer',
+                        permissions: ['posts:create']
+                    }
+                ]
+            }
         }
     }
 ];

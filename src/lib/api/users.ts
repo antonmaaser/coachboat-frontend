@@ -6,8 +6,13 @@ export interface UserAttributes {
     email?: string;
     password?: string;
     status?: number;
+    'is-active'?: boolean;
     role?: { slug: string; name: string } | string;
     'created-at'?: string;
+    effective_permissions?: {
+        global: { role: string; roleName: string; permissions: string[] } | null;
+        contexts: { id: string; name: string; role: string; roleName: string; permissions: string[] }[];
+    };
 }
 
 export interface User {
