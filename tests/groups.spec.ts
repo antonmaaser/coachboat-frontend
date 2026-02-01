@@ -13,7 +13,7 @@ test.describe('Groups', () => {
 
     const user = {
         ...AUTH_USERS.user,
-        permissions: Array.from(new Set([...AUTH_USERS.user.permissions, 'groups:view']))
+        permissions: Array.from(new Set([...AUTH_USERS.user.permissions, 'groups:read']))
     };
 
     const group1 = createGroup({ title: 'Training A' });
@@ -66,7 +66,7 @@ test.describe('Groups empty state', () => {
 
     const user = {
         ...AUTH_USERS.user,
-        permissions: Array.from(new Set([...AUTH_USERS.user.permissions, 'groups:view']))
+        permissions: Array.from(new Set([...AUTH_USERS.user.permissions, 'groups:read']))
     };
 
     test('Shows empty state when no groups exist', async ({ page }) => {
@@ -102,7 +102,7 @@ test.describe('Group errors', () => {
 
     const user = {
         ...AUTH_USERS.user,
-        permissions: Array.from(new Set([...AUTH_USERS.user.permissions, 'groups:view']))
+        permissions: Array.from(new Set([...AUTH_USERS.user.permissions, 'groups:read']))
     };
 
     test('Shows not found when group detail is non-OK', async ({ page }) => {

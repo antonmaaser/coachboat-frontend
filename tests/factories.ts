@@ -99,3 +99,27 @@ export const createResourceCategory = (overrides: Partial<ResourceCategory> = {}
     ...overrides
 });
 
+// Role
+export interface Role {
+    id: string;
+    type: 'roles';
+    attributes: {
+        name: string;
+        slug: string;
+        type: 'global' | 'group';
+        description?: string;
+        permissions: string[];
+    };
+}
+
+export const createRole = (overrides: Partial<Role['attributes']> & { id?: string } = {}): Role => ({
+    id: overrides.id || id(),
+    type: 'roles',
+    attributes: {
+        name: 'Test Role',
+        slug: 'test_role',
+        type: 'global',
+        permissions: [],
+        ...overrides
+    }
+});

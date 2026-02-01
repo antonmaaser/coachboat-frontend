@@ -13,6 +13,7 @@
         Settings,
         DraftingCompass,
         X,
+        Shield,
     } from "lucide-svelte";
 
     // $auth is available because we import the store
@@ -78,7 +79,7 @@
             Dashboard
         </a>
 
-        {#if hasPermission($auth.user, "events:view")}
+        {#if hasPermission($auth.user, "events:read")}
             <a
                 href="/events"
                 onclick={close}
@@ -92,7 +93,7 @@
             </a>
         {/if}
 
-        {#if hasPermission($auth.user, "resources:view")}
+        {#if hasPermission($auth.user, "resources:read")}
             <a
                 href="/resources"
                 onclick={close}
@@ -106,7 +107,7 @@
             </a>
         {/if}
 
-        {#if hasPermission($auth.user, "groups:view")}
+        {#if hasPermission($auth.user, "groups:read")}
             <a
                 href="/groups"
                 onclick={close}
@@ -145,13 +146,27 @@
             href="/settings"
             onclick={close}
             class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium
-        {isActive('/settings', $page.url.pathname)
+        {isActive('/settings', $page.url.pathname) &&
+            $page.url.pathname === '/settings'
                 ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
                 : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 hover:text-zinc-900 dark:hover:text-zinc-200'}"
         >
             <Settings class="w-5 h-5" />
             Einstellungen
         </a>
+
+        {#if hasPermission($auth.user, "roles:read")}
+            <a
+                href="/settings/rbac"
+                onclick={close}
+                class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium ml-4 border-l-2 border-zinc-100 dark:border-zinc-800
+            {isActive('/settings/rbac', $page.url.pathname)
+                    ? 'border-blue-500 text-blue-700 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/10'
+                    : 'text-zinc-500 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300'}"
+            >
+                <span class="pl-2">Berechtigungen</span>
+            </a>
+        {/if}
     </nav>
 
     <div class="p-4 border-t border-zinc-100 dark:border-zinc-700/50">

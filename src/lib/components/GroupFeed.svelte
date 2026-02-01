@@ -33,7 +33,6 @@
         error = null;
 
         try {
-            console.log("[GroupFeed] Feed abrufen für", groupId);
             const res = await groupApi.getFeed(groupId);
 
             if (!res.ok) {
@@ -43,7 +42,6 @@
 
             const json = await res.json();
             const rawActivities = json.data || [];
-            console.log("[GroupFeed] Feed abgerufen:", rawActivities.length);
 
             // Process items
             items = rawActivities
@@ -198,12 +196,9 @@
 
         eventSource = new EventSource(url);
 
-        eventSource.onopen = () => {
-            console.log("[SSE] Connected to group stream", id);
-        };
+        eventSource.onopen = () => {};
 
         eventSource.addEventListener("activity", (e) => {
-            console.log("[SSE] Activity received", e.data);
             // Refresh feed
             // Use untrack or just call it? It's async.
             loadFeed();
@@ -230,7 +225,6 @@
 
         return () => {
             if (eventSource) {
-                console.log("[SSE] Closing connection");
                 eventSource.close();
                 eventSource = null;
             }

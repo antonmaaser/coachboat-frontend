@@ -87,7 +87,7 @@ export async function mockApi(page: Page, handlers: Record<string, any>) {
     });
 }
 
-export function getCommonHandlers(user: any) {
+function getCommonHandlers(user: any) {
     return {
         'AUTH POST /token': {
             access_token: 'fake-access-token',

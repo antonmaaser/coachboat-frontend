@@ -14,27 +14,14 @@ async function refreshAccessToken(): Promise<boolean> {
 
     try {
         let res;
-        // @ts-ignore
-        if (import.meta.env.VITE_USE_MOCK_API === 'true') {
-            const { handleMockRequest } = await import('./mocks');
-            res = await handleMockRequest(`${AUTH_BASE}/token`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    grant_type: 'refresh_token',
-                    refresh_token: state.refreshToken
-                })
-            });
-        } else {
-            res = await fetch(`${AUTH_BASE}/token`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    grant_type: 'refresh_token',
-                    refresh_token: state.refreshToken
-                })
-            });
-        }
+        res = await fetch(`${AUTH_BASE}/token`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                grant_type: 'refresh_token',
+                refresh_token: state.refreshToken
+            })
+        });
 
         if (res.ok) {
             const data = await res.json();
@@ -91,27 +78,10 @@ export async function client(endpoint: string, options: RequestOptions = {}) {
         headers.set('Authorization', `Bearer ${state.accessToken}`);
     }
 
-    // Mock API Interceptor
-    // @ts-ignore
-    if (import.meta.env.VITE_USE_MOCK_API === 'true') {
-        const { handleMockRequest } = await import('./mocks');
 
-        // Mock refresh logic locally if needed, or route through handleMockRequest
-        // For refresh specifically:
-        if (url.includes('/token') && init.method === 'POST') {
-            return handleMockRequest(url, { ...init, headers: headers as any });
-        }
-    }
 
     let response;
-
-    // @ts-ignore
-    if (import.meta.env.VITE_USE_MOCK_API === 'true') {
-        const { handleMockRequest } = await import('./mocks');
-        response = await handleMockRequest(url, { ...init, headers: headers as any });
-    } else {
-        response = await fetch(url, { ...init, headers });
-    }
+    response = await fetch(url, { ...init, headers });
 
     // Handle 401/403 (Token Expired)
     if ((response.status === 401 || response.status === 403) && !skipAuth) {
@@ -122,13 +92,7 @@ export async function client(endpoint: string, options: RequestOptions = {}) {
             const newState = get(auth);
             headers.set('Authorization', `Bearer ${newState.accessToken}`);
 
-            // @ts-ignore
-            if (import.meta.env.VITE_USE_MOCK_API === 'true') {
-                const { handleMockRequest } = await import('./mocks');
-                response = await handleMockRequest(url, { ...init, headers: headers as any });
-            } else {
-                response = await fetch(url, { ...init, headers });
-            }
+            response = await fetch(url, { ...init, headers });
         } else {
             // Refresh failed, logout
             logout();

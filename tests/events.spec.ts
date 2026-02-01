@@ -341,7 +341,7 @@ test.describe('Events - Edit Permissions', () => {
         const viewer = AUTH_USERS.group_only;
         const otherOwner = AUTH_USERS.admin; // Just someone else
 
-        test('Non-owner WITHOUT events:edit:any cannot see edit button', async ({ page }) => {
+        test('Non-owner WITHOUT events:update:any cannot see edit button', async ({ page }) => {
             const otherEvent = createEvent({ title: 'Other Event', date: dateStr, resource: resource._id, createdBy: otherOwner.id });
 
             await setupMocks(page, viewer, {
@@ -374,7 +374,7 @@ test.describe('Events - Edit Permissions', () => {
         const admin = AUTH_USERS.admin;
         const otherOwner = AUTH_USERS.user;
 
-        test('Admin WITH events:edit:any CAN see edit button for others events', async ({ page }) => {
+        test('Admin WITH events:update:any CAN see edit button for others events', async ({ page }) => {
             const otherEvent = createEvent({ title: 'Admin Edit Event', date: dateStr, resource: resource._id, createdBy: otherOwner.id });
 
             await setupMocks(page, admin, {

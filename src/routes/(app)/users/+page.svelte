@@ -291,7 +291,7 @@
                                 {/if}
                             </button>
                         </th>
-                        {#if hasPermission($auth.user, "users:edit") || hasPermission($auth.user, "users:delete")}
+                        {#if hasPermission($auth.user, "users:update") || hasPermission($auth.user, "users:delete")}
                             <th class="px-6 py-4 text-right">Actions</th>
                         {/if}
                     </tr>
@@ -368,7 +368,7 @@
                                             <div
                                                 class="absolute right-0 z-20 mt-2 w-48 bg-white dark:bg-zinc-800 rounded-lg shadow-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden transform origin-top-right transition-all"
                                             >
-                                                {#if hasPermission($auth.user, "users:edit")}
+                                                {#if hasPermission($auth.user, "users:update")}
                                                     <button
                                                         onclick={() => {
                                                             activeMenu = null;

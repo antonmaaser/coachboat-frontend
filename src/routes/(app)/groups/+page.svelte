@@ -241,7 +241,7 @@
                                                     <UserPlus class="w-4 h-4" />
                                                     Mitglieder
                                                 </button>
-                                                {#if hasPermission($auth.user, "groups:edit")}
+                                                {#if hasPermission($auth.user, "groups:update")}
                                                     <button
                                                         onclick={() => {
                                                             activeMenu = null;

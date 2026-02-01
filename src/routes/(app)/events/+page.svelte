@@ -167,7 +167,7 @@
     let canEdit = $derived(
         $auth.user &&
             selectedUser &&
-            (hasPermission($auth.user, "events:edit:any") ||
+            (hasPermission($auth.user, "events:update:any") ||
                 $auth.user?.id === selectedUser.id),
     );
 
