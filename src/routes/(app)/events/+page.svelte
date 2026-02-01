@@ -9,7 +9,9 @@
         ChevronRight,
         Plus,
         Loader2,
-        AlertCircle, // Keeping this just in case, but ErrorAlert uses its own icon
+        List,
+        CalendarDays,
+        Calendar,
     } from "lucide-svelte";
     import * as Icons from "lucide-svelte";
     import { onMount } from "svelte";
@@ -27,6 +29,7 @@
     let selectedDay = $state(new Date().getDate());
     let loading = $state(false);
     let error = $state("");
+    let viewMode = $state<"month" | "week" | "agenda">("month");
 
     // Derived values for Calendar
     let year = $derived(currentDate.getFullYear());
@@ -34,6 +37,26 @@
     let monthName = $derived(
         currentDate.toLocaleString("default", { month: "long" }),
     );
+
+    let weekStart = $derived.by(() => {
+        const d = new Date(currentDate);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+        return new Date(d.setDate(diff));
+    });
+
+    let currentPeriodLabel = $derived.by(() => {
+        if (viewMode === "week") {
+            const start = weekStart;
+            const end = new Date(start);
+            end.setDate(end.getDate() + 6);
+            if (start.getMonth() === end.getMonth()) {
+                return `${start.getDate()} - ${end.getDate()}. ${start.toLocaleString("default", { month: "long" })} ${start.getFullYear()}`;
+            }
+            return `${start.getDate()}. ${start.toLocaleString("default", { month: "short" })} - ${end.getDate()}. ${end.toLocaleString("default", { month: "short" })} ${end.getFullYear()}`;
+        }
+        return `${monthName} ${year}`;
+    });
 
     let daysInMonth = $derived(new Date(year, month + 1, 0).getDate());
     let firstDayOfWeek = $derived(new Date(year, month, 1).getDay()); // 0=Sun, 1=Mon...
@@ -57,6 +80,15 @@
         loading = true;
         error = "";
         try {
+            // Ensure we load enough data for week view if it crosses months,
+            // but for simplicity currently just loading adjacent months if needed could be better.
+            // Current API might only support month filtering.
+            // Assuming current API loads by year/month.
+            // If week view crosses month, we might technically need two requests or logic to handle it.
+            // For now, let's just load the month of the currentDate.
+            // If week crosses month boundary, user might miss events from the other month in the week view
+            // if we only load one month.
+            // TODO: Optimize this to load current view range.
             const res = await eventApi.list(year, month + 1);
             if (res.ok) {
                 const json = await res.json();
@@ -113,14 +145,26 @@
         }
     });
 
-    function prevMonth() {
-        currentDate = new Date(year, month - 1, 1);
-        selectedDay = 1;
+    function prevPeriod() {
+        if (viewMode === "week") {
+            const d = new Date(currentDate);
+            d.setDate(d.getDate() - 7);
+            currentDate = d;
+        } else {
+            currentDate = new Date(year, month - 1, 1);
+            selectedDay = 1;
+        }
     }
 
-    function nextMonth() {
-        currentDate = new Date(year, month + 1, 1);
-        selectedDay = 1;
+    function nextPeriod() {
+        if (viewMode === "week") {
+            const d = new Date(currentDate);
+            d.setDate(d.getDate() + 7);
+            currentDate = d;
+        } else {
+            currentDate = new Date(year, month + 1, 1);
+            selectedDay = 1;
+        }
     }
 
     function getEventsForDay(day: number) {
@@ -350,6 +394,69 @@
     }
 
     let canCreate = $derived(hasPermission($auth.user, "events:create"));
+
+    // Helper for Agenda View
+    let agendaEvents = $derived.by(() => {
+        // Flatten all events for the month
+        const days = [];
+        for (let i = 1; i <= daysInMonth; i++) {
+            const evs = getEventsForDay(i);
+            if (evs.length > 0) {
+                const date = new Date(year, month, i);
+                days.push({
+                    date,
+                    events: evs,
+                });
+            }
+        }
+        return days;
+    });
+
+    // Helper for Weekly View
+    let weekDays = $derived.by(() => {
+        const days = [];
+        const start = weekStart;
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(start);
+            d.setDate(d.getDate() + i);
+            days.push(d);
+        }
+        return days;
+    });
+
+    function getEventsForWeekDay(date: Date) {
+        // Construct YYYY-MM-DD from local date parts to avoid UTC shifting
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        const dateStr = `${year}-${month}-${day}`;
+
+        return events
+            .filter((e: any) => {
+                const attr = e.attributes || e;
+                if (!attr.date) return false;
+                // Only comparing date part
+                return attr.date.split("T")[0] === dateStr;
+            })
+            .filter((e) => {
+                // Apply category filter
+                if (selectedCategoryId) {
+                    const attr = e.attributes || e;
+                    const resourceId = attr.resource;
+                    if (!resourceId) return false;
+                    const resource = resources.find(
+                        (r) => String(r.id) === String(resourceId),
+                    );
+                    if (!resource) return false;
+                    if (
+                        String(resource.attributes["category-id"]) !==
+                        String(selectedCategoryId)
+                    )
+                        return false;
+                }
+                return true;
+            });
+    }
 </script>
 
 <div class="space-y-6">
@@ -368,7 +475,7 @@
                 class="flex items-center justify-between bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 shadow-sm w-full md:w-auto"
             >
                 <button
-                    onclick={prevMonth}
+                    onclick={prevPeriod}
                     class="p-2 hover:bg-zinc-50 dark:hover:bg-zinc-700 rounded-l-lg transition-colors"
                 >
                     <ChevronLeft
@@ -376,18 +483,52 @@
                     />
                 </button>
                 <span
-                    class="px-4 py-2 font-medium flex-1 md:flex-none text-center text-zinc-900 dark:text-white border-x border-zinc-200 dark:border-zinc-700 min-w-[140px]"
+                    class="px-4 py-2 font-medium flex-1 md:flex-none text-center text-zinc-900 dark:text-white border-x border-zinc-200 dark:border-zinc-700 min-w-[200px]"
                 >
-                    {monthName}
-                    {year}
+                    {currentPeriodLabel}
                 </span>
                 <button
-                    onclick={nextMonth}
+                    onclick={nextPeriod}
                     class="p-2 hover:bg-zinc-50 dark:hover:bg-zinc-700 rounded-r-lg transition-colors"
                 >
                     <ChevronRight
                         class="w-5 h-5 text-zinc-600 dark:text-zinc-400"
                     />
+                </button>
+            </div>
+
+            <!-- View Switcher -->
+            <div
+                class="flex items-center bg-zinc-100 dark:bg-zinc-800/50 p-1 rounded-lg border border-zinc-200 dark:border-zinc-700"
+            >
+                <button
+                    class="p-1.5 rounded-md transition-all {viewMode === 'month'
+                        ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-white'
+                        : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'}"
+                    onclick={() => (viewMode = "month")}
+                    title="Monatsansicht"
+                >
+                    <Calendar class="w-4 h-4" />
+                </button>
+                <button
+                    class="p-1.5 rounded-md transition-all hidden md:block {viewMode ===
+                    'week'
+                        ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-white'
+                        : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'}"
+                    onclick={() => (viewMode = "week")}
+                    title="Wochenansicht"
+                >
+                    <CalendarDays class="w-4 h-4" />
+                </button>
+                <button
+                    class="p-1.5 rounded-md transition-all {viewMode ===
+                    'agenda'
+                        ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-white'
+                        : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'}"
+                    onclick={() => (viewMode = "agenda")}
+                    title="Agenda"
+                >
+                    <List class="w-4 h-4" />
                 </button>
             </div>
         </div>
@@ -450,196 +591,412 @@
         <ErrorAlert {error} />
     {/if}
 
-    <!-- Mobile Date Scroller & Event List -->
-    <div class="block md:hidden space-y-4">
-        <!-- Date Scroller -->
-        <div class="flex overflow-x-auto gap-2 pb-2 -mx-4 px-4 scrollbar-hide">
-            {#each Array(daysInMonth) as _, i}
-                {@const day = i + 1}
-                {@const date = new Date(year, month, day)}
-                {@const isSelected = selectedDay === day}
-                {@const isToday =
-                    day === new Date().getDate() &&
-                    month === new Date().getMonth() &&
-                    year === new Date().getFullYear()}
-                {@const hasEvents = getEventsForDay(day).length > 0}
-                <button
-                    class="flex flex-col items-center justify-center min-w-[3.5rem] h-16 rounded-xl border transition-all relative {isSelected
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20'
-                        : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700'}"
-                    onclick={() => (selectedDay = day)}
-                >
-                    <span class="text-xs font-medium opacity-80">
-                        {date.toLocaleDateString("de-DE", { weekday: "short" })}
-                    </span>
-                    <span class="text-lg font-bold">
-                        {day}
-                    </span>
-
-                    <div class="absolute bottom-1.5 flex gap-1">
-                        {#if isToday && !isSelected}
-                            <div
-                                class="w-1 h-1 bg-current rounded-full opacity-50"
-                            ></div>
-                        {/if}
-                        {#if hasEvents}
-                            <div
-                                class="w-1 h-1 bg-blue-500 rounded-full {isSelected
-                                    ? 'bg-white'
-                                    : ''}"
-                            ></div>
-                        {/if}
-                    </div>
-                </button>
-            {/each}
-        </div>
-
-        <!-- Selected Day Events -->
-        <div class="space-y-3">
-            <h3 class="font-medium text-zinc-900 dark:text-white px-1">
-                {selectedDay}. {monthName}
-            </h3>
-
-            {#if loading}
-                <div class="flex justify-center py-8">
-                    <Loader2 class="w-6 h-6 animate-spin text-zinc-400" />
-                </div>
-            {:else}
-                {@const dayEvents = getEventsForDay(selectedDay)}
-                {#if dayEvents.length === 0}
-                    <div
-                        class="text-center py-8 text-zinc-500 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700"
-                    >
-                        Keine Buchungen für diesen Tag
-                    </div>
-                {:else}
-                    {#each dayEvents as event}
-                        <!-- svelte-ignore a11y_click_events_have_key_events -->
-                        <!-- svelte-ignore a11y_no_static_element_interactions -->
-                        <div
-                            onclick={() => handleEventClick(event)}
-                            class="bg-white dark:bg-zinc-800 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-sm flex gap-4 active:scale-[0.98] transition-transform"
-                        >
-                            <div
-                                class="flex flex-col items-center justify-center px-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-700 dark:text-blue-300"
-                            >
-                                <span class="text-xs font-medium">Start</span>
-                                <span class="font-bold"
-                                    >{formatSeconds(
-                                        event.attributes["start-date"],
-                                    )}</span
-                                >
-                            </div>
-
-                            <div class="flex-1 min-w-0 py-1">
-                                <h4
-                                    class="font-semibold text-zinc-900 dark:text-white truncate"
-                                >
-                                    {event.attributes.title}
-                                </h4>
-                                <div
-                                    class="flex items-center gap-2 mt-1 text-sm text-zinc-500 dark:text-zinc-400"
-                                >
-                                    <span>
-                                        {formatSeconds(
-                                            event.attributes["start-date"],
-                                        )} - {formatSeconds(
-                                            event.attributes["end-date"],
-                                        )}
-                                    </span>
-                                </div>
-                                {#if event.attributes.resource}
-                                    {@const r = resources.find(
-                                        (r) =>
-                                            String(r.id) ===
-                                            String(event.attributes.resource),
-                                    )}
-                                    {#if r}
-                                        <div
-                                            class="mt-2 text-xs inline-flex items-center px-2 py-1 bg-zinc-100 dark:bg-zinc-700 rounded text-zinc-600 dark:text-zinc-300"
-                                        >
-                                            {r.attributes.title}
-                                        </div>
-                                    {/if}
-                                {/if}
-                            </div>
-                        </div>
-                    {/each}
-                {/if}
-            {/if}
-        </div>
-    </div>
-
-    <!-- Calendar Grid (Desktop) -->
-    <div
-        class="hidden md:block bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden relative"
-    >
-        {#if loading}
+    <!-- Month View -->
+    {#if viewMode === "month"}
+        <!-- Mobile Date Scroller & Event List -->
+        <div class="block md:hidden space-y-4">
+            <!-- Date Scroller -->
             <div
-                class="absolute inset-0 flex items-center justify-center bg-white/50 dark:bg-zinc-800/50 z-10 transition-opacity"
+                class="flex overflow-x-auto gap-2 pb-2 -mx-4 px-4 scrollbar-hide"
             >
-                <div
-                    class="flex w-full justify-center py-12 text-zinc-500 gap-2 items-center"
-                >
-                    <Loader2 class="w-5 h-5 animate-spin" />
-                    <span class="text-sm font-medium"
-                        >Buchungen werden geladen...</span
+                {#each Array(daysInMonth) as _, i}
+                    {@const day = i + 1}
+                    {@const date = new Date(year, month, day)}
+                    {@const isSelected = selectedDay === day}
+                    {@const isToday =
+                        day === new Date().getDate() &&
+                        month === new Date().getMonth() &&
+                        year === new Date().getFullYear()}
+                    {@const hasEvents = getEventsForDay(day).length > 0}
+                    <button
+                        class="flex flex-col items-center justify-center min-w-[3.5rem] h-16 rounded-xl border transition-all relative {isSelected
+                            ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20'
+                            : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700'}"
+                        onclick={() => (selectedDay = day)}
                     >
-                </div>
-            </div>
-        {/if}
-
-        <!-- Days Header -->
-        <div
-            class="hidden md:grid grid-cols-7 border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50"
-        >
-            {#each ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"] as day}
-                <div
-                    class="py-3 text-center text-sm font-semibold text-zinc-500 dark:text-zinc-400"
-                >
-                    {day}
-                </div>
-            {/each}
-        </div>
-
-        <!-- Days Grid -->
-        <div class="hidden md:grid grid-cols-7 auto-rows-fr min-h-[600px]">
-            {#each calendarDays as day}
-                <div
-                    class="min-h-[100px] border-b border-r border-zinc-100 dark:border-zinc-700/50 p-2 relative group hover:bg-zinc-50 dark:hover:bg-zinc-700/20 transition-colors"
-                >
-                    {#if day}
-                        <span
-                            class="text-sm font-medium text-zinc-700 dark:text-zinc-300 block mb-1 {day ===
-                                new Date().getDate() &&
-                            month === new Date().getMonth() &&
-                            year === new Date().getFullYear()
-                                ? 'bg-blue-600 text-white w-7 h-7 flex items-center justify-center rounded-full'
-                                : ''}"
-                        >
+                        <span class="text-xs font-medium opacity-80">
+                            {date.toLocaleDateString("de-DE", {
+                                weekday: "short",
+                            })}
+                        </span>
+                        <span class="text-lg font-bold">
                             {day}
                         </span>
 
-                        <div class="space-y-1">
-                            {#each getEventsForDay(day) as event}
+                        <div class="absolute bottom-1.5 flex gap-1">
+                            {#if isToday && !isSelected}
+                                <div
+                                    class="w-1 h-1 bg-current rounded-full opacity-50"
+                                ></div>
+                            {/if}
+                            {#if hasEvents}
+                                <div
+                                    class="w-1 h-1 bg-blue-500 rounded-full {isSelected
+                                        ? 'bg-white'
+                                        : ''}"
+                                ></div>
+                            {/if}
+                        </div>
+                    </button>
+                {/each}
+            </div>
+
+            <!-- Selected Day Events -->
+            <div class="space-y-3">
+                <h3 class="font-medium text-zinc-900 dark:text-white px-1">
+                    {selectedDay}. {monthName}
+                </h3>
+
+                {#if loading}
+                    <div class="flex justify-center py-8">
+                        <Loader2 class="w-6 h-6 animate-spin text-zinc-400" />
+                    </div>
+                {:else}
+                    {@const dayEvents = getEventsForDay(selectedDay)}
+                    {#if dayEvents.length === 0}
+                        <div
+                            class="text-center py-8 text-zinc-500 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700"
+                        >
+                            Keine Buchungen für diesen Tag
+                        </div>
+                    {:else}
+                        {#each dayEvents as event}
+                            <!-- svelte-ignore a11y_click_events_have_key_events -->
+                            <!-- svelte-ignore a11y_no_static_element_interactions -->
+                            <div
+                                onclick={() => handleEventClick(event)}
+                                class="bg-white dark:bg-zinc-800 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-sm flex gap-4 active:scale-[0.98] transition-transform"
+                            >
+                                <div
+                                    class="flex flex-col items-center justify-center px-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-700 dark:text-blue-300"
+                                >
+                                    <span class="text-xs font-medium"
+                                        >Start</span
+                                    >
+                                    <span class="font-bold"
+                                        >{formatSeconds(
+                                            event.attributes["start-date"],
+                                        )}</span
+                                    >
+                                </div>
+
+                                <div class="flex-1 min-w-0 py-1">
+                                    <h4
+                                        class="font-semibold text-zinc-900 dark:text-white truncate"
+                                    >
+                                        {event.attributes.title}
+                                    </h4>
+                                    <div
+                                        class="flex items-center gap-2 mt-1 text-sm text-zinc-500 dark:text-zinc-400"
+                                    >
+                                        <span>
+                                            {formatSeconds(
+                                                event.attributes["start-date"],
+                                            )} - {formatSeconds(
+                                                event.attributes["end-date"],
+                                            )}
+                                        </span>
+                                    </div>
+                                    {#if event.attributes.resource}
+                                        {@const r = resources.find(
+                                            (r) =>
+                                                String(r.id) ===
+                                                String(
+                                                    event.attributes.resource,
+                                                ),
+                                        )}
+                                        {#if r}
+                                            <div
+                                                class="mt-2 text-xs inline-flex items-center px-2 py-1 bg-zinc-100 dark:bg-zinc-700 rounded text-zinc-600 dark:text-zinc-300"
+                                            >
+                                                {r.attributes.title}
+                                            </div>
+                                        {/if}
+                                    {/if}
+                                </div>
+                            </div>
+                        {/each}
+                    {/if}
+                {/if}
+            </div>
+        </div>
+
+        <!-- Calendar Grid (Desktop) -->
+        <div
+            class="hidden md:block bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden relative"
+        >
+            {#if loading}
+                <div
+                    class="absolute inset-0 flex items-center justify-center bg-white/50 dark:bg-zinc-800/50 z-10 transition-opacity"
+                >
+                    <div
+                        class="flex w-full justify-center py-12 text-zinc-500 gap-2 items-center"
+                    >
+                        <Loader2 class="w-5 h-5 animate-spin" />
+                        <span class="text-sm font-medium"
+                            >Buchungen werden geladen...</span
+                        >
+                    </div>
+                </div>
+            {/if}
+
+            <!-- Days Header -->
+            <div
+                class="hidden md:grid grid-cols-7 border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50"
+            >
+                {#each ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"] as day}
+                    <div
+                        class="py-3 text-center text-sm font-semibold text-zinc-500 dark:text-zinc-400"
+                    >
+                        {day}
+                    </div>
+                {/each}
+            </div>
+
+            <!-- Days Grid -->
+            <div class="hidden md:grid grid-cols-7 auto-rows-fr min-h-[600px]">
+                {#each calendarDays as day}
+                    <div
+                        class="min-h-[100px] border-b border-r border-zinc-100 dark:border-zinc-700/50 p-2 relative group hover:bg-zinc-50 dark:hover:bg-zinc-700/20 transition-colors"
+                    >
+                        {#if day}
+                            <span
+                                class="text-sm font-medium block mb-1 {day ===
+                                    new Date().getDate() &&
+                                month === new Date().getMonth() &&
+                                year === new Date().getFullYear()
+                                    ? 'bg-blue-600 text-white w-7 h-7 flex items-center justify-center rounded-full'
+                                    : 'text-zinc-700 dark:text-zinc-300'}"
+                            >
+                                {day}
+                            </span>
+
+                            <div class="space-y-1">
+                                {#each getEventsForDay(day) as event}
+                                    <!-- svelte-ignore a11y_click_events_have_key_events -->
+                                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                                    <div
+                                        onclick={(e) => {
+                                            e.stopPropagation();
+                                            handleEventClick(event);
+                                        }}
+                                        class="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-1 rounded truncate border border-blue-200 dark:border-blue-800 cursor-pointer hover:opacity-80"
+                                    >
+                                        {event.attributes?.title || "Buchung"}
+                                    </div>
+                                {/each}
+                            </div>
+                        {/if}
+                    </div>
+                {/each}
+            </div>
+        </div>
+
+        <!-- Agenda View -->
+    {:else if viewMode === "agenda"}
+        <div class="max-w-3xl mx-auto space-y-6">
+            {#if agendaEvents.length === 0}
+                <div
+                    class="text-center py-12 text-zinc-500 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700"
+                >
+                    Keine Buchungen in diesem Monat
+                </div>
+            {:else}
+                {#each agendaEvents as group}
+                    <div class="space-y-3">
+                        <div
+                            class="flex items-center gap-3 sticky top-0 bg-white dark:bg-zinc-950 py-2 z-10"
+                        >
+                            <div class="w-2 h-2 rounded-full bg-blue-600"></div>
+                            <h3
+                                class="font-medium text-zinc-900 dark:text-white text-lg"
+                            >
+                                {group.date.toLocaleDateString("de-DE", {
+                                    weekday: "long",
+                                    day: "numeric",
+                                    month: "long",
+                                })}
+                            </h3>
+                        </div>
+                        <div class="grid gap-3 pl-5">
+                            {#each group.events as event}
+                                <!-- reuse card logic or component -->
                                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                                 <div
-                                    onclick={(e) => {
-                                        e.stopPropagation();
-                                        handleEventClick(event);
-                                    }}
-                                    class="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-1 rounded truncate border border-blue-200 dark:border-blue-800 cursor-pointer hover:opacity-80"
+                                    onclick={() => handleEventClick(event)}
+                                    class="bg-white dark:bg-zinc-800 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-sm flex gap-4 active:scale-[0.98] transition-all hover:border-blue-300 dark:hover:border-blue-700"
                                 >
-                                    {event.attributes?.title || "Buchung"}
+                                    <div
+                                        class="flex flex-col items-center justify-center px-3 bg-zinc-50 dark:bg-zinc-700/50 rounded-lg text-zinc-700 dark:text-zinc-300 min-w-[80px]"
+                                    >
+                                        <span
+                                            class="text-xs font-medium uppercase text-zinc-500"
+                                            >Zeit</span
+                                        >
+                                        <span class="font-bold text-lg"
+                                            >{formatSeconds(
+                                                event.attributes["start-date"],
+                                            )}</span
+                                        >
+                                    </div>
+
+                                    <div class="flex-1 min-w-0 py-1">
+                                        <h4
+                                            class="font-semibold text-zinc-900 dark:text-white truncate text-lg"
+                                        >
+                                            {event.attributes.title}
+                                        </h4>
+                                        <div
+                                            class="flex items-center gap-2 mt-1 text-sm text-zinc-500 dark:text-zinc-400"
+                                        >
+                                            <span>
+                                                Bis {formatSeconds(
+                                                    event.attributes[
+                                                        "end-date"
+                                                    ],
+                                                )}
+                                            </span>
+                                        </div>
+                                        {#if event.attributes.resource}
+                                            {@const r = resources.find(
+                                                (r) =>
+                                                    String(r.id) ===
+                                                    String(
+                                                        event.attributes
+                                                            .resource,
+                                                    ),
+                                            )}
+                                            {#if r}
+                                                <div
+                                                    class="mt-2 text-xs inline-flex items-center px-2 py-1 bg-blue-50 dark:bg-blue-900/20 rounded text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800"
+                                                >
+                                                    {r.attributes.title}
+                                                </div>
+                                            {/if}
+                                        {/if}
+                                    </div>
+                                    <div class="self-center">
+                                        <ChevronRight
+                                            class="w-5 h-5 text-zinc-400"
+                                        />
+                                    </div>
                                 </div>
                             {/each}
                         </div>
-                    {/if}
-                </div>
-            {/each}
+                    </div>
+                {/each}
+            {/if}
         </div>
-    </div>
+
+        <!-- Weekly View -->
+    {:else if viewMode === "week"}
+        <div
+            class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden relative hidden md:block"
+        >
+            <div class="grid grid-cols-[auto_repeat(7,1fr)]">
+                <!-- Time Column Header -->
+                <div
+                    class="border-b border-r border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50 p-3"
+                ></div>
+                <!-- Day Headers -->
+                {#each weekDays as date}
+                    {@const isToday =
+                        date.toDateString() === new Date().toDateString()}
+                    <div
+                        class="border-b border-r border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50 p-3 text-center"
+                    >
+                        <div
+                            class="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase"
+                        >
+                            {date.toLocaleDateString("de-DE", {
+                                weekday: "short",
+                            })}
+                        </div>
+                        <div
+                            class="text-lg font-bold {isToday
+                                ? 'text-blue-600'
+                                : 'text-zinc-900 dark:text-white'}"
+                        >
+                            {date.getDate()}
+                        </div>
+                    </div>
+                {/each}
+
+                <!-- Time Grid -->
+                {#each Array(15) as _, i}
+                    <!-- 07:00 to 22:00 -->
+                    {@const hour = i + 7}
+                    <!-- Time Label -->
+                    <div
+                        class="border-b border-r border-zinc-100 dark:border-zinc-700/50 p-2 text-right text-xs text-zinc-400 font-medium h-20 -mt-2.5"
+                    >
+                        {String(hour).padStart(2, "0")}:00
+                    </div>
+
+                    <!-- Day Columns for this hour -->
+                    {#each weekDays as date}
+                        <div
+                            class="border-b border-r border-zinc-100 dark:border-zinc-700/50 relative h-20 group hover:bg-zinc-50 dark:hover:bg-zinc-700/10"
+                        >
+                            <!-- Events starting in this hour -->
+                        </div>
+                    {/each}
+                {/each}
+
+                <!-- Overlay Events Layer -->
+                <!-- To properly position events across the grid, we use a separate overlay or absolute positioning within the grid cells.
+                      However, spanning valid times requires absolute positioning on top of the grid.
+                 -->
+            </div>
+
+            <!-- Absolute Event Layer -->
+            <!-- Position events absolutely over the grid. Grid is 7 columns + 1 time column. -->
+            <!-- We need a container relative to the grid that excludes the header row and time column for easier calculation. -->
+            <div
+                class="absolute top-[65px] left-[60px] right-0 bottom-0 pointer-events-none"
+            >
+                {#each weekDays as date, dayIndex}
+                    {@const dayEvents = getEventsForWeekDay(date)}
+                    {#each dayEvents as event}
+                        {@const startSec = event.attributes["start-date"]}
+                        {@const endSec = event.attributes["end-date"]}
+
+                        <!-- 7:00 = 7*3600 = 25200s offset. 1h = 80px (h-20) -->
+                        {@const offsetSec = 25200}
+                        {@const pxPerSec = 80 / 3600}
+                        {@const top = (startSec - offsetSec) * pxPerSec}
+                        {@const height = (endSec - startSec) * pxPerSec}
+
+                        <!-- svelte-ignore a11y_click_events_have_key_events -->
+                        <!-- svelte-ignore a11y_no_static_element_interactions -->
+                        <div
+                            class="absolute bg-blue-100 dark:bg-blue-900/40 border-l-4 border-blue-600 dark:border-blue-400 rounded-r px-2 py-1 text-xs cursor-pointer hover:brightness-95 hover:z-20 pointer-events-auto transition-all shadow-sm"
+                            style="left: {(dayIndex / 7) * 100}%; width: {100 /
+                                7}%; top: {top}px; height: {Math.max(
+                                height,
+                                24,
+                            )}px;"
+                            onclick={() => handleEventClick(event)}
+                        >
+                            <div
+                                class="font-semibold text-blue-900 dark:text-blue-100 truncate"
+                            >
+                                {event.attributes.title}
+                            </div>
+                            <div
+                                class="text-blue-800 dark:text-blue-200 opacity-80 truncate"
+                            >
+                                {formatSeconds(startSec)} - {formatSeconds(
+                                    endSec,
+                                )}
+                            </div>
+                        </div>
+                    {/each}
+                {/each}
+            </div>
+        </div>
+    {/if}
 </div>
 
 <Modal

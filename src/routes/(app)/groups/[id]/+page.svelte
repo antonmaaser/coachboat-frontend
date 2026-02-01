@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { page } from "$app/stores";
+    import { page } from "$app/state";
     import { groupApi } from "$lib/api/groups";
     import { auth, hasPermission } from "$lib/stores/auth";
     import { onMount } from "svelte";
@@ -7,7 +7,7 @@
     import GroupMembersModal from "$lib/components/GroupMembersModal.svelte";
     import { Users, Settings, ArrowLeft } from "lucide-svelte";
 
-    const groupId = $page.params.id;
+    const groupId = page.params.id;
     let group = $state<any>(null);
     let loading = $state(true);
     let error = $state("");

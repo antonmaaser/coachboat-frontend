@@ -1,7 +1,8 @@
 <script lang="ts">
-    import { page } from "$app/stores";
+    import { page } from "$app/state";
     import { auth, logout, hasPermission } from "$lib/stores/auth";
     import { theme } from "$lib/stores/theme";
+    import logo from "$lib/assets/waves.svg";
     import {
         LayoutDashboard,
         Calendar,
@@ -48,11 +49,7 @@
         class="p-6 flex items-center justify-between border-b border-zinc-100 dark:border-zinc-700/50"
     >
         <div class="flex items-center gap-3">
-            <div
-                class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold"
-            >
-                CP
-            </div>
+            <img src={logo} alt="Coachboat Planer" class="w-8 h-8" />
             <span class="font-bold text-lg text-zinc-900 dark:text-white"
                 >Coachboat-Planer</span
             >
@@ -71,7 +68,7 @@
             href="/"
             onclick={close}
             class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium
-        {isActive('/', $page.url.pathname)
+        {isActive('/', page.url.pathname)
                 ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
                 : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 hover:text-zinc-900 dark:hover:text-zinc-200'}"
         >
@@ -84,7 +81,7 @@
                 href="/events"
                 onclick={close}
                 class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium
-        {isActive('/events', $page.url.pathname)
+        {isActive('/events', page.url.pathname)
                     ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
                     : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 hover:text-zinc-900 dark:hover:text-zinc-200'}"
             >
@@ -98,7 +95,7 @@
                 href="/resources"
                 onclick={close}
                 class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium
-        {isActive('/resources', $page.url.pathname)
+        {isActive('/resources', page.url.pathname)
                     ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
                     : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 hover:text-zinc-900 dark:hover:text-zinc-200'}"
             >
@@ -112,7 +109,7 @@
                 href="/groups"
                 onclick={close}
                 class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium
-        {isActive('/groups', $page.url.pathname)
+        {isActive('/groups', page.url.pathname)
                     ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
                     : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 hover:text-zinc-900 dark:hover:text-zinc-200'}"
             >
@@ -133,7 +130,7 @@
                 href="/users"
                 onclick={close}
                 class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium
-            {isActive('/users', $page.url.pathname)
+            {isActive('/users', page.url.pathname)
                     ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
                     : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 hover:text-zinc-900 dark:hover:text-zinc-200'}"
             >
@@ -146,8 +143,8 @@
             href="/settings"
             onclick={close}
             class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium
-        {isActive('/settings', $page.url.pathname) &&
-            $page.url.pathname === '/settings'
+        {isActive('/settings', page.url.pathname) &&
+            page.url.pathname === '/settings'
                 ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
                 : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 hover:text-zinc-900 dark:hover:text-zinc-200'}"
         >
@@ -160,7 +157,7 @@
                 href="/settings/rbac"
                 onclick={close}
                 class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium ml-4 border-l-2 border-zinc-100 dark:border-zinc-800
-            {isActive('/settings/rbac', $page.url.pathname)
+            {isActive('/settings/rbac', page.url.pathname)
                     ? 'border-blue-500 text-blue-700 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/10'
                     : 'text-zinc-500 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300'}"
             >

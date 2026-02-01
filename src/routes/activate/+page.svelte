@@ -1,7 +1,7 @@
 <script lang="ts">
   import { client } from "$lib/api/client";
   import { goto } from "$app/navigation";
-  import { page } from "$app/stores";
+  import { page } from "$app/state";
   import { Loader2, KeyRound, CheckCircle2, AlertCircle } from "lucide-svelte";
   import { onMount } from "svelte";
   import { AUTH_BASE } from "$lib/config";
@@ -15,7 +15,7 @@
   let success = $state(false);
 
   onMount(() => {
-    const t = $page.url.searchParams.get("token");
+    const t = page.url.searchParams.get("token");
     if (t) token = t;
   });
 
