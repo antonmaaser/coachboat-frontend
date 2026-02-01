@@ -80,16 +80,18 @@
         loading = true;
         error = "";
         try {
-            // Ensure we load enough data for week view if it crosses months,
-            // but for simplicity currently just loading adjacent months if needed could be better.
-            // Current API might only support month filtering.
-            // Assuming current API loads by year/month.
-            // If week view crosses month, we might technically need two requests or logic to handle it.
-            // For now, let's just load the month of the currentDate.
-            // If week crosses month boundary, user might miss events from the other month in the week view
-            // if we only load one month.
-            // TODO: Optimize this to load current view range.
-            const res = await eventApi.list(year, month + 1);
+            // Calculate start and end for the current view (Month)
+            const startStr = new Date(year, month, 1).toLocaleDateString(
+                "en-CA",
+            );
+            const endStr = new Date(year, month + 1, 0).toLocaleDateString(
+                "en-CA",
+            );
+
+            const res = await eventApi.list({
+                start: startStr,
+                end: endStr,
+            });
             if (res.ok) {
                 const json = await res.json();
                 events = (json.data || json).map(normalizeEvent);

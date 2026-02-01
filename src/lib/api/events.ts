@@ -28,13 +28,22 @@ export interface Event {
 }
 
 export const eventApi = {
-    list: (year: number, month: number) =>
-        client(`/events`, {
-            params: {
-                'filter[year]': year.toString(),
-                'filter[month]': month.toString()
-            }
-        }),
+    list: (params: {
+        start?: string;
+        end?: string;
+        limit?: number;
+        offset?: number;
+        sort?: string;
+    } = {}) => {
+        const query: any = {};
+        if (params.start) query['filter[start]'] = params.start;
+        if (params.end) query['filter[end]'] = params.end;
+        if (params.limit) query['page[limit]'] = params.limit.toString();
+        if (params.offset) query['page[offset]'] = params.offset.toString();
+        if (params.sort) query['sort'] = params.sort;
+
+        return client(`/events`, { params: query });
+    },
 
     get: (id: string) => client(`/events/${id}`),
 

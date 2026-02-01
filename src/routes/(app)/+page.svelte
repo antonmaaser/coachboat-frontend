@@ -2,6 +2,31 @@
     import { auth } from "$lib/stores/auth";
     import TodoList from "$lib/components/TodoList.svelte";
     import { Calendar, DraftingCompass, Users } from "lucide-svelte";
+    import { onMount } from "svelte";
+    import { eventApi } from "$lib/api/events";
+
+    let nextEvent: any = $state(null);
+    let loadingEvent = $state(true);
+
+    onMount(async () => {
+        try {
+            const res = await eventApi.list({
+                start: new Date().toISOString(),
+                limit: 1,
+                sort: "start-date",
+            });
+            if (res.ok) {
+                const json = await res.json();
+                if (json.data && json.data.length > 0) {
+                    nextEvent = json.data[0];
+                }
+            }
+        } catch (e) {
+            console.error("Failed to load next event", e);
+        } finally {
+            loadingEvent = false;
+        }
+    });
 </script>
 
 <div class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -55,6 +80,80 @@
                 Pssst: etwas anderes Aussehen, gleiche Funktionen ;)
             </p>
         </div>
+
+        <!-- Next Booking Widget -->
+        {#if loadingEvent}
+            <div
+                class="bg-white dark:bg-zinc-800 p-6 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700 animate-pulse"
+            >
+                <div
+                    class="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-1/3 mb-4"
+                ></div>
+                <div
+                    class="h-8 bg-zinc-200 dark:bg-zinc-700 rounded w-2/3"
+                ></div>
+            </div>
+        {:else if nextEvent}
+            <div
+                class="bg-white dark:bg-zinc-800 p-6 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700 relative overflow-hidden group"
+            >
+                <div
+                    class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"
+                >
+                    <DraftingCompass class="w-24 h-24 text-blue-500" />
+                </div>
+
+                <h3
+                    class="text-sm font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-2"
+                >
+                    <Calendar class="w-4 h-4" />
+                    Nächste Fahrt
+                </h3>
+
+                <div class="mt-4">
+                    <p
+                        class="text-lg font-semibold text-zinc-900 dark:text-white line-clamp-1"
+                    >
+                        {nextEvent.attributes.title}
+                    </p>
+                    <p
+                        class="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-1"
+                    >
+                        {new Date(
+                            nextEvent.attributes["start-date"],
+                        ).toLocaleTimeString("de-DE", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                        })}
+                    </p>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+                        {new Date(
+                            nextEvent.attributes["start-date"],
+                        ).toLocaleDateString("de-DE", {
+                            weekday: "long",
+                            day: "numeric",
+                            month: "long",
+                        })}
+                    </p>
+                </div>
+
+                <div
+                    class="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-700/50 flex items-center justify-between"
+                >
+                    <span
+                        class="text-xs font-medium px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300"
+                    >
+                        Training
+                    </span>
+                    <a
+                        href="/events"
+                        class="text-sm text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                    >
+                        Zum Kalender &rarr;
+                    </a>
+                </div>
+            </div>
+        {/if}
 
         <div
             class="bg-white dark:bg-zinc-800 p-6 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700 md:col-span-3 lg:col-span-1"
