@@ -227,11 +227,26 @@
     }
 
     function formatSeconds(seconds: number | string) {
+        if (typeof seconds === "string" && seconds.includes("T")) {
+            const d = new Date(seconds);
+            const h = d.getHours();
+            const m = d.getMinutes();
+            return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+        }
         const sec = Number(seconds);
         if (isNaN(sec)) return "";
         const h = Math.floor(sec / 3600);
         const m = Math.floor((sec % 3600) / 60);
         return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+    }
+
+    function getTimeInSeconds(val: string | number) {
+        if (typeof val === "number") return val;
+        if (typeof val === "string" && val.includes("T")) {
+            const d = new Date(val);
+            return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
+        }
+        return Number(val) || 0;
     }
 
     async function handleEventClick(event: any) {
@@ -961,8 +976,12 @@
                 {#each weekDays as date, dayIndex}
                     {@const dayEvents = getEventsForWeekDay(date)}
                     {#each dayEvents as event}
-                        {@const startSec = event.attributes["start-date"]}
-                        {@const endSec = event.attributes["end-date"]}
+                        {@const startSec = getTimeInSeconds(
+                            event.attributes["start-date"],
+                        )}
+                        {@const endSec = getTimeInSeconds(
+                            event.attributes["end-date"],
+                        )}
 
                         <!-- 7:00 = 7*3600 = 25200s offset. 1h = 80px (h-20) -->
                         {@const offsetSec = 25200}
