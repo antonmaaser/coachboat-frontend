@@ -18,7 +18,9 @@
         Trash2,
         ListTodo,
         AlertTriangle,
+        ArrowRight,
     } from "lucide-svelte";
+    import { goto } from "$app/navigation";
     import * as Icons from "lucide-svelte";
     import { onMount } from "svelte";
 
@@ -224,6 +226,8 @@
                 {@const category = categories.find(
                     (c) => c.id === attrs["category-id"],
                 )}
+                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div
                     class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 relative group transition-all hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-600"
                 >
@@ -253,69 +257,82 @@
                             </div>
                         {/if}
 
-                        {#if todoCounts[resource.id]}
-                            <div
-                                class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full shadow-md z-10 border-2 border-white dark:border-zinc-800"
+                        <div class="flex items-center gap-1">
+                            <button
+                                onclick={() =>
+                                    goto(`/resources/${resource.id}`)}
+                                class="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                                aria-label="Details"
                             >
-                                {todoCounts[resource.id]}
-                            </div>
-                        {/if}
-                        {#if $auth.user?.status && $auth.user.status >= 2}
-                            <div class="relative z-20">
-                                <button
-                                    onclick={() =>
-                                        (activeMenuId =
-                                            activeMenuId === resource.id
-                                                ? null
-                                                : resource.id)}
-                                    class="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-                                    aria-label="Optionen"
-                                >
-                                    <MoreVertical class="w-5 h-5" />
-                                </button>
+                                <ArrowRight class="w-5 h-5" />
+                            </button>
 
-                                {#if activeMenuId === resource.id}
-                                    <div
-                                        class="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-800 rounded-lg shadow-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden transform origin-top-right transition-all"
+                            {#if todoCounts[resource.id]}
+                                <div
+                                    class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full shadow-md z-10 border-2 border-white dark:border-zinc-800"
+                                >
+                                    {todoCounts[resource.id]}
+                                </div>
+                            {/if}
+                            {#if $auth.user?.status && $auth.user.status >= 2}
+                                <div class="relative z-20">
+                                    <button
+                                        onclick={(e) => {
+                                            e.stopPropagation();
+                                            activeMenuId =
+                                                activeMenuId === resource.id
+                                                    ? null
+                                                    : resource.id;
+                                        }}
+                                        class="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                                        aria-label="Optionen"
                                     >
-                                        {#if isAdmin}
-                                            <button
-                                                onclick={() => {
-                                                    openEditModal(resource);
-                                                    activeMenuId = null;
-                                                }}
-                                                class="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2"
-                                            >
-                                                <Pencil class="w-4 h-4" />
-                                                Bearbeiten
-                                            </button>
-                                            <button
-                                                onclick={() => {
-                                                    handleDelete(resource);
-                                                    activeMenuId = null;
-                                                }}
-                                                class="w-full text-left px-4 py-3 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm text-red-600 dark:text-red-400 flex items-center gap-2 border-t border-zinc-100 dark:border-zinc-700"
-                                            >
-                                                <Trash2 class="w-4 h-4" />
-                                                Löschen
-                                            </button>
-                                        {/if}
-                                        <button
-                                            onclick={() => {
-                                                viewingTodosFor = resource;
-                                                activeMenuId = null;
-                                            }}
-                                            class="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2 {isAdmin
-                                                ? 'border-t border-zinc-100 dark:border-zinc-700'
-                                                : ''}"
+                                        <MoreVertical class="w-5 h-5" />
+                                    </button>
+
+                                    {#if activeMenuId === resource.id}
+                                        <div
+                                            class="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-800 rounded-lg shadow-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden transform origin-top-right transition-all"
                                         >
-                                            <ListTodo class="w-4 h-4" />
-                                            Aufgaben
-                                        </button>
-                                    </div>
-                                {/if}
-                            </div>
-                        {/if}
+                                            {#if isAdmin}
+                                                <button
+                                                    onclick={() => {
+                                                        openEditModal(resource);
+                                                        activeMenuId = null;
+                                                    }}
+                                                    class="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2"
+                                                >
+                                                    <Pencil class="w-4 h-4" />
+                                                    Bearbeiten
+                                                </button>
+                                                <button
+                                                    onclick={() => {
+                                                        handleDelete(resource);
+                                                        activeMenuId = null;
+                                                    }}
+                                                    class="w-full text-left px-4 py-3 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm text-red-600 dark:text-red-400 flex items-center gap-2 border-t border-zinc-100 dark:border-zinc-700"
+                                                >
+                                                    <Trash2 class="w-4 h-4" />
+                                                    Löschen
+                                                </button>
+                                            {/if}
+                                            <button
+                                                onclick={() => {
+                                                    viewingTodosFor = resource;
+                                                    activeMenuId = null;
+                                                }}
+                                                class="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2 {isAdmin
+                                                    ? 'border-t border-zinc-100 dark:border-zinc-700'
+                                                    : ''}"
+                                            >
+                                                <ListTodo class="w-4 h-4" />
+                                                Aufgaben
+                                            </button>
+                                        </div>
+                                    {/if}
+                                </div>
+                            {/if}
+                        </div>
                     </div>
 
                     <h3

@@ -31,7 +31,6 @@
     }
 </script>
 
-```html
 <!-- Mobile Backdrop -->
 {#if isOpen}
     <div

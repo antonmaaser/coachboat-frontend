@@ -34,10 +34,12 @@ export const eventApi = {
         limit?: number;
         offset?: number;
         sort?: string;
+        resource?: string;
     } = {}) => {
         const query: any = {};
         if (params.start) query['filter[start]'] = params.start;
         if (params.end) query['filter[end]'] = params.end;
+        if (params.resource) query['filter[resource]'] = params.resource;
         if (params.limit) query['page[limit]'] = params.limit.toString();
         if (params.offset) query['page[offset]'] = params.offset.toString();
         if (params.sort) query['sort'] = params.sort;

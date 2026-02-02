@@ -3,6 +3,7 @@
     import Sidebar from "$lib/components/Sidebar.svelte";
     import { goto } from "$app/navigation";
     import { browser } from "$app/environment";
+    import logo from "$lib/assets/waves.svg";
 
     import { client } from "$lib/api/client";
     import { Menu } from "lucide-svelte";
@@ -48,11 +49,7 @@
         class="md:hidden flex items-center justify-between p-4 bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 sticky top-0 z-30"
     >
         <div class="flex items-center gap-2">
-            <div
-                class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold"
-            >
-                CP
-            </div>
+            <img src={logo} alt="Coachboat Planer" class="w-8 h-8" />
             <span class="font-bold text-lg text-zinc-900 dark:text-white"
                 >Coachboat-Planer</span
             >
