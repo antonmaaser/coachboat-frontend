@@ -1,8 +1,10 @@
 <script lang="ts">
-    import { groupApi } from "$lib/api/groups";
+    import { groupApi, type GroupAttributes } from "$lib/api/groups";
     import { auth, hasPermission } from "$lib/stores/auth";
     import Modal from "$lib/components/Modal.svelte";
-    import GroupForm from "$lib/components/GroupForm.svelte";
+    // GroupForm removed
+    import TextInput from "$lib/components/ui/TextInput.svelte";
+    import SearchableSelect from "$lib/components/ui/SearchableSelect.svelte";
     import {
         Users,
         Plus,
@@ -13,6 +15,7 @@
         EyeOff,
         Shield,
         UserPlus,
+        Loader2,
     } from "lucide-svelte";
     import GroupMembersModal from "$lib/components/GroupMembersModal.svelte";
     import { onMount } from "svelte";
@@ -26,6 +29,57 @@
 
     let showMembersModal = $state(false);
     let selectedGroupForMembers = $state<any>(undefined);
+
+    // Form State
+    let formTitle = $state("");
+    let formDescription = $state("");
+    let formVisibility = $state("all");
+    let formLoading = $state(false);
+    let formError = $state("");
+
+    $effect(() => {
+        if (showModal) {
+            formTitle = editingGroup?.attributes.title || "";
+            formDescription = editingGroup?.attributes.description || "";
+            formVisibility = editingGroup?.attributes.visibility || "all";
+            formError = "";
+            formLoading = false;
+        }
+    });
+
+    async function handleFormSubmit(e: Event) {
+        e.preventDefault();
+        formLoading = true;
+        formError = "";
+
+        try {
+            const attributes: Partial<GroupAttributes> = {
+                title: formTitle,
+                description: formDescription,
+                visibility: formVisibility as "all" | "admin" | "none",
+            };
+
+            let res;
+            if (editingGroup?.id) {
+                res = await groupApi.update(editingGroup.id, attributes);
+            } else {
+                res = await groupApi.create(attributes as GroupAttributes);
+            }
+
+            if (!res.ok) {
+                const json = await res.json();
+                throw new Error(
+                    json.errors?.[0]?.detail || "Failed to save group",
+                );
+            }
+
+            handleSuccess();
+        } catch (e: any) {
+            formError = e.message;
+        } finally {
+            formLoading = false;
+        }
+    }
 
     async function loadGroups() {
         loading = true;
@@ -290,7 +344,58 @@
         title={editingGroup ? "Gruppe bearbeiten" : "Gruppe erstellen"}
     >
         {#key editingGroup?.id || "new"}
-            <GroupForm group={editingGroup} onSuccess={handleSuccess} />
+            <form onsubmit={handleFormSubmit} class="space-y-4">
+                {#if formError}
+                    <div
+                        class="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm"
+                    >
+                        {formError}
+                    </div>
+                {/if}
+
+                <TextInput
+                    id="title"
+                    label="Name"
+                    bind:value={formTitle}
+                    required
+                />
+
+                <TextInput
+                    id="description"
+                    label="Description"
+                    bind:value={formDescription}
+                    multiline
+                    rows={3}
+                />
+
+                <div>
+                    <SearchableSelect
+                        label="Visibility"
+                        bind:value={formVisibility}
+                        options={[
+                            { value: "all", label: "All" },
+                            { value: "admin", label: "Admin" },
+                            { value: "none", label: "None" },
+                        ]}
+                        searchable={false}
+                    />
+                </div>
+
+                <div class="pt-2">
+                    <button
+                        type="submit"
+                        disabled={formLoading}
+                        class="w-full flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-white py-2 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {#if formLoading}
+                            <Loader2 class="w-4 h-4 animate-spin mr-2" />
+                            Saving...
+                        {:else}
+                            {editingGroup ? "Update Group" : "Create Group"}
+                        {/if}
+                    </button>
+                </div>
+            </form>
         {/key}
     </Modal>
 

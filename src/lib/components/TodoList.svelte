@@ -13,6 +13,8 @@
     import { onMount, tick } from "svelte";
     import { extractErrorMessage } from "$lib/utils/error";
     import ErrorAlert from "$lib/components/ui/ErrorAlert.svelte";
+    import TextInput from "$lib/components/ui/TextInput.svelte";
+    import Toggle from "$lib/components/ui/Toggle.svelte";
     import { toast } from "$lib/stores/toast";
 
     let { resourceId } = $props<{ resourceId?: string | number }>();
@@ -213,12 +215,11 @@
         <ErrorAlert {error} />
     {/if}
     {#if resourceId}
-        <form onsubmit={createTodo} class="flex gap-2">
-            <input
-                type="text"
+        <form onsubmit={createTodo} class="flex items-start gap-2">
+            <TextInput
                 bind:value={newTitle}
                 placeholder="Add a new task..."
-                class="flex-1 rounded-lg border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                class="flex-1"
             />
             <button
                 type="submit"
@@ -235,31 +236,7 @@
     {/if}
 
     <div class="flex items-center justify-between">
-        <button
-            type="button"
-            role="switch"
-            aria-checked={showCompleted}
-            onclick={() => (showCompleted = !showCompleted)}
-            class="flex items-center gap-2 text-xs text-zinc-500 cursor-pointer focus:outline-none group"
-        >
-            <div
-                class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 {showCompleted
-                    ? 'bg-blue-600'
-                    : 'bg-zinc-200 dark:bg-zinc-700'}"
-            >
-                <span class="sr-only">Alle anzeigen</span>
-                <span
-                    aria-hidden="true"
-                    class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {showCompleted
-                        ? 'translate-x-4'
-                        : 'translate-x-0'}"
-                ></span>
-            </div>
-            <span
-                class="group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors"
-                >Zeige Alle</span
-            >
-        </button>
+        <Toggle bind:checked={showCompleted} label="Zeige Alle" />
         <span class="text-xs text-zinc-400">
             {todos.filter((t) => t.attributes.status === 0).length} offen
         </span>
@@ -295,14 +272,14 @@
 
                     <div class="flex-1 min-w-0">
                         {#if editingId === todo.id}
-                            <div class="flex items-center gap-2">
-                                <input
+                            <div class="flex items-center gap-2 flex-1">
+                                <TextInput
                                     id="edit-todo-{todo.id}"
-                                    type="text"
                                     bind:value={editTitle}
-                                    onkeydown={(e) => handleKeydown(e, todo.id)}
+                                    onkeydown={(e: KeyboardEvent) =>
+                                        handleKeydown(e, todo.id)}
                                     onblur={() => saveEdit(todo.id)}
-                                    class="w-full bg-white dark:bg-zinc-900 border border-blue-500 rounded px-2 py-1 text-sm focus:outline-none"
+                                    class="w-full"
                                 />
                             </div>
                         {:else}

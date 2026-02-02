@@ -1,11 +1,14 @@
 <script lang="ts">
-    import { resourceApi } from "$lib/api/resources";
+    import { resourceApi, type ResourceAttributes } from "$lib/api/resources";
     import { client } from "$lib/api/client";
     import { todoApi } from "$lib/api/todos";
     import { auth, hasPermission } from "$lib/stores/auth";
     import { toast } from "$lib/stores/toast";
     import Modal from "$lib/components/Modal.svelte";
-    import ResourceForm from "$lib/components/ResourceForm.svelte";
+    // ResourceForm removed
+    import ErrorAlert from "$lib/components/ui/ErrorAlert.svelte";
+    import TextInput from "$lib/components/ui/TextInput.svelte";
+    import SearchableSelect from "$lib/components/ui/SearchableSelect.svelte";
     import TodoList from "$lib/components/TodoList.svelte";
 
     import {
@@ -19,6 +22,7 @@
         ListTodo,
         AlertTriangle,
         ArrowRight,
+        Loader2,
     } from "lucide-svelte";
     import { goto } from "$app/navigation";
     import * as Icons from "lucide-svelte";
@@ -26,7 +30,6 @@
 
     import { resourceCategoryApi } from "$lib/api/resource-categories";
     import { extractErrorMessage } from "$lib/utils/error";
-    import ErrorAlert from "$lib/components/ui/ErrorAlert.svelte";
 
     let resources = $state<any[]>([]);
     let todos = $state<any[]>([]);
@@ -38,6 +41,62 @@
     let activeMenuId = $state<string | null>(null);
     let viewingTodosFor = $state<any>(undefined);
     let isLoading = $state(true);
+
+    // Form State
+    let formTitle = $state("");
+    let formDescription = $state("");
+    let formIsReady = $state(false);
+    let formCategoryId = $state<string>("");
+    let formLoading = $state(false);
+    let formError = $state("");
+
+    $effect(() => {
+        if (showModal) {
+            formTitle = editingResource?.attributes.title || "";
+            formDescription = editingResource?.attributes.description || "";
+            formIsReady = editingResource?.attributes["is-ready"] || false;
+            formCategoryId = editingResource?.attributes["category-id"] || "";
+            formError = "";
+            formLoading = false;
+        }
+    });
+
+    async function handleFormSubmit(e: Event) {
+        e.preventDefault();
+        formLoading = true;
+        formError = "";
+
+        try {
+            const attributes: Partial<ResourceAttributes> = {
+                title: formTitle,
+                description: formDescription,
+                "is-ready": formIsReady,
+                "category-id": formCategoryId || null,
+            };
+
+            let res;
+            if (editingResource?.id) {
+                res = await resourceApi.update(editingResource.id, attributes);
+            } else {
+                res = await resourceApi.create(
+                    attributes as ResourceAttributes,
+                );
+            }
+
+            if (!res.ok) {
+                const msg = await extractErrorMessage(res);
+                formError = msg;
+                return;
+            }
+
+            handleSuccess();
+        } catch (e: any) {
+            console.error(e);
+            formError = await extractErrorMessage(e);
+        } finally {
+            formLoading = false;
+        }
+    }
 
     async function handleDelete(resource: any) {
         if (!confirm("Are you sure you want to delete this resource?")) return;
@@ -402,10 +461,74 @@
         title={editingResource ? "Material bearbeiten" : "Neues Material"}
     >
         {#key editingResource?.id || "new"}
-            <ResourceForm
-                resource={editingResource}
-                onSuccess={handleSuccess}
-            />
+            <form onsubmit={handleFormSubmit} class="space-y-4">
+                {#if formError}
+                    <ErrorAlert error={formError} />
+                {/if}
+
+                <TextInput
+                    id="title"
+                    label="Titel"
+                    bind:value={formTitle}
+                    required
+                    placeholder="e.g. Coach Boat 1"
+                />
+
+                <div>
+                    <SearchableSelect
+                        label="Kategorie"
+                        bind:value={formCategoryId}
+                        options={[
+                            { value: "", label: "Keine Kategorie" },
+                            ...categories.map((cat) => ({
+                                value: cat.id,
+                                label: cat.attributes.title,
+                            })),
+                        ]}
+                        placeholder="Wähle eine Kategorie..."
+                    />
+                </div>
+
+                <TextInput
+                    id="description"
+                    label="Beschreibung"
+                    bind:value={formDescription}
+                    multiline
+                    rows={3}
+                    placeholder="Optional description..."
+                />
+
+                <div class="flex items-center gap-6">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            bind:checked={formIsReady}
+                            class="rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span
+                            class="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+                            >Material verfügbar</span
+                        >
+                    </label>
+                </div>
+
+                <div class="pt-2">
+                    <button
+                        type="submit"
+                        disabled={formLoading}
+                        class="w-full flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-white py-2 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {#if formLoading}
+                            <Loader2 class="w-4 h-4 animate-spin mr-2" />
+                            Speichern...
+                        {:else}
+                            {editingResource
+                                ? "Material aktualisieren"
+                                : "Neues Material erstellen"}
+                        {/if}
+                    </button>
+                </div>
+            </form>
         {/key}
     </Modal>
 

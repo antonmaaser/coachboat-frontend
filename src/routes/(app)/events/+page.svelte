@@ -19,6 +19,7 @@
     import SearchableSelect from "$lib/components/ui/SearchableSelect.svelte";
     import { extractErrorMessage } from "$lib/utils/error";
     import ErrorAlert from "$lib/components/ui/ErrorAlert.svelte";
+    import Toggle from "$lib/components/ui/Toggle.svelte";
     import { toast } from "$lib/stores/toast";
 
     let currentDate = $state(new Date());
@@ -1083,18 +1084,11 @@
             class="space-y-3 pt-2 border-t border-zinc-200 dark:border-zinc-700"
         >
             <div class="flex items-center gap-2">
-                <input
-                    type="checkbox"
+                <Toggle
                     id="isRecurring"
                     bind:checked={newEvent.isRecurring}
-                    class="rounded border-zinc-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                    label="Wiederkehrende Buchung"
                 />
-                <label
-                    for="isRecurring"
-                    class="text-sm font-medium text-zinc-900 dark:text-white"
-                >
-                    Wiederkehrende Buchung
-                </label>
             </div>
 
             {#if newEvent.isRecurring}

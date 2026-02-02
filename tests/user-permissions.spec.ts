@@ -98,7 +98,11 @@ test.describe('User Permissions View', () => {
 
         const modal = page.getByRole('dialog');
         await expect(modal.getByText('Globale Berechtigungen')).toBeVisible();
-        await expect(modal.getByText('Benutzer', { exact: true })).toBeVisible(); // Role name badge
+
+        // Scope to the badge area to avoid ambiguity with the form select if it's still visible
+        // We use a locator that likely targets the permission badge container
+        await expect(modal.locator('.rounded-full').getByText('Benutzer', { exact: true })).toBeVisible();
+
         await expect(modal.getByText('events:read')).toBeVisible();
     });
 
@@ -112,7 +116,8 @@ test.describe('User Permissions View', () => {
 
         const modal = page.getByRole('dialog');
 
-        // Context section\n        await expect(modal.getByText('Gruppenberechtigungen')).toBeVisible();
+        // Context section
+        await expect(modal.getByText('Gruppenberechtigungen')).toBeVisible();
         await expect(modal.getByText('Training Group A')).toBeVisible();
         await expect(modal.getByText('Trainer')).toBeVisible(); // Context role
         await expect(modal.getByText('posts:create')).toBeVisible();
@@ -135,11 +140,18 @@ test.describe('User Permissions View', () => {
 
         // Switch to Permissions tab
         await modal.locator('button').filter({ hasText: 'Berechtigungen' }).first().click();
-        await expect(modal.getByText('Globale Berechtigungen')).toBeVisible();
+
+        // Wait for removal of details content to ensure transition is underway/done
         await expect(modal.getByLabel('First Name')).not.toBeVisible();
+
+        // Now check for permissions content
+        // This might wait for API + State Update
+        await expect(modal.getByText('Globale Berechtigungen')).toBeVisible();
 
         // Switch back to Details
         await detailsTab.click();
+
+        // Verify details are back
         await expect(modal.getByLabel('First Name')).toBeVisible();
     });
 });
