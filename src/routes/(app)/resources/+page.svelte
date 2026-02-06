@@ -54,7 +54,7 @@
         if (showModal) {
             formTitle = editingResource?.attributes.title || "";
             formDescription = editingResource?.attributes.description || "";
-            formIsReady = editingResource?.attributes["is-ready"] || false;
+            formIsReady = editingResource?.attributes["is-bookable"] || false;
             formCategoryId = editingResource?.attributes["category-id"] || "";
             formError = "";
             formLoading = false;
@@ -70,7 +70,7 @@
             const attributes: Partial<ResourceAttributes> = {
                 title: formTitle,
                 description: formDescription,
-                "is-ready": formIsReady,
+                "is-bookable": formIsReady,
                 "category-id": formCategoryId || null,
             };
 
@@ -333,7 +333,7 @@
                                     {todoCounts[resource.id]}
                                 </div>
                             {/if}
-                            {#if $auth.user?.status && $auth.user.status >= 2}
+                            {#if isAdmin}
                                 <div class="relative z-20">
                                     <button
                                         onclick={(e) => {
@@ -426,7 +426,7 @@
                     <div
                         class="flex items-center gap-2 text-sm pt-4 border-t border-zinc-100 dark:border-zinc-700/50"
                     >
-                        {#if attrs["is-ready"]}
+                        {#if attrs["is-bookable"]}
                             {#if todoCounts[resource.id] && todoCounts[resource.id] > 0}
                                 <AlertTriangle
                                     class="w-4 h-4 text-orange-500"

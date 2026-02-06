@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { auth } from "$lib/stores/auth";
+    import { auth, hasPermission } from "$lib/stores/auth";
     import TodoList from "$lib/components/TodoList.svelte";
     import { Calendar, DraftingCompass, Users } from "lucide-svelte";
     import { onMount } from "svelte";
@@ -9,6 +9,10 @@
     let nextEvent: any = $state(null);
     let resources: any[] = $state([]);
     let loadingEvent = $state(true);
+    let canOpenEvents = $derived(hasPermission($auth.user, "events:read"));
+    let canOpenResources = $derived(
+        hasPermission($auth.user, "resources:read"),
+    );
 
     onMount(async () => {
         try {
@@ -164,7 +168,7 @@
         >
             <h3 class="text-blue-100 font-medium">Quick Actions</h3>
             <div class="mt-4 space-y-2">
-                {#if $auth.user?.status && $auth.user.status >= 2}
+                {#if canOpenEvents}
                     <a
                         href="/events"
                         class="flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-colors px-3 py-2 rounded-lg text-sm font-medium text-white"
@@ -172,6 +176,8 @@
                         <Calendar class="w-4 h-4" />
                         Kalender anschauen
                     </a>
+                {/if}
+                {#if canOpenResources}
                     <a
                         href="/resources"
                         class="flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-colors px-3 py-2 rounded-lg text-sm font-medium text-white"

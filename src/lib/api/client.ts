@@ -25,11 +25,13 @@ async function refreshAccessToken(): Promise<boolean> {
 
         if (res.ok) {
             const data = await res.json();
+
             auth.update(s => ({
                 ...s,
                 accessToken: data.access_token,
                 refreshToken: data.refresh_token, // Update if rotated
-                user: { ...s.user, id: data.user_id } // Ensure ID is consistent
+                user: { ...s.user, id: data.user_id }, // Ensure ID is consistent
+                organizationId: data.organizationId // Update organization context
             }));
             return true;
         }
@@ -39,14 +41,8 @@ async function refreshAccessToken(): Promise<boolean> {
     return false;
 }
 
-export async function client(endpoint: string, options: RequestOptions = {}) {
+export async function client<T = any>(endpoint: string, options: RequestOptions = {}): Promise<Response & { json: () => Promise<T>; ok: boolean; status: number; }> {
     const { params, skipAuth, ...init } = options;
-
-    // Determine base URL (Auth endpoints go to AUTH_BASE, others API_BASE)
-    // Assuming if endpoint starts with http, use it, else default to API_BASE
-    // But we need to handle Auth API calls (like /activate, /token) separately from this helper usually,
-    // OR we just allow passing full URL.
-    // Let's assume 'endpoint' is relative to API_BASE unless specified.
 
     // Determine base URL (Auth endpoints go to AUTH_BASE, others API_BASE)
     // Constants are relative paths (proxied).
@@ -78,8 +74,6 @@ export async function client(endpoint: string, options: RequestOptions = {}) {
         headers.set('Authorization', `Bearer ${state.accessToken}`);
     }
 
-
-
     let response;
     response = await fetch(url, { ...init, headers });
 
@@ -99,5 +93,40 @@ export async function client(endpoint: string, options: RequestOptions = {}) {
         }
     }
 
-    return response;
+    // Cast response to intersect with custom json method return type for convenience
+    const typedResponse = response as Response & { json: () => Promise<T> };
+    return typedResponse;
+}
+
+export async function switchOrganization(organizationId: string): Promise<boolean> {
+    const state = get(auth);
+    if (!state.refreshToken) return false;
+
+    try {
+        const res = await fetch(`${AUTH_BASE}/switch-organization`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                refreshToken: state.refreshToken,
+                organizationId
+            })
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            auth.update(s => ({
+                ...s,
+                accessToken: data.access_token,
+                refreshToken: data.refresh_token,
+                organizationId: data.organizationId
+            }));
+
+            // Optionally reload page to refresh data context
+            window.location.reload();
+            return true;
+        }
+    } catch (e) {
+        console.error('Switch Organization failed', e);
+    }
+    return false;
 }

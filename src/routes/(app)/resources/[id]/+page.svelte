@@ -28,7 +28,7 @@
         loading = true;
         try {
             // Fetch Resource
-            const resResource = await resourceApi.get(resourceId);
+            const resResource = await resourceApi.get(resourceId!);
             if (resResource.ok) {
                 const json = await resResource.json();
                 resource = json.data;
@@ -159,7 +159,7 @@
                     </p>
                     <div class="mt-4 flex gap-4 text-sm">
                         <div class="flex items-center gap-2">
-                            {#if resource.attributes["is-ready"]}
+                            {#if resource.attributes["is-bookable"]}
                                 <span
                                     class="px-2 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 font-medium"
                                 >

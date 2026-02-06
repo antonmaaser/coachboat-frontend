@@ -209,6 +209,7 @@
     let selectedResource = $state<any>(null);
     let selectedUser = $state<any>(null);
     let creating = $state(false);
+    let deleting = $state(false);
     let editTargetId = $state<string | null>(null);
 
     let canEdit = $derived(
@@ -216,6 +217,13 @@
             selectedUser &&
             (hasPermission($auth.user, "events:update:any") ||
                 $auth.user?.id === selectedUser.id),
+    );
+    let canDelete = $derived(
+        $auth.user &&
+            (hasPermission($auth.user, "events:delete:any") ||
+                (selectedUser &&
+                    $auth.user?.id === selectedUser.id &&
+                    hasPermission($auth.user, "events:delete:own"))),
     );
 
     function formatDate(dateStr: string) {
@@ -250,13 +258,37 @@
         return Number(val) || 0;
     }
 
+    function resolveEventUserId(event: any): string | null {
+        return (
+            event?.attributes?.["created-by"] ||
+            event?.relationships?.user?.data?.id ||
+            event?.relationships?.owner?.data?.id ||
+            event?.relationships?.creator?.data?.id ||
+            event?.attributes?.user_id ||
+            event?.attributes?.userId ||
+            null
+        );
+    }
+
     async function handleEventClick(event: any) {
+        let resolvedEvent = event;
         selectedEvent = event;
         selectedResource = null;
         selectedUser = null;
         showDetailModal = true;
 
-        const resourceId = event.attributes.resource;
+        try {
+            const resEvent = await eventApi.get(event.id);
+            if (resEvent.ok) {
+                const json = await resEvent.json();
+                resolvedEvent = normalizeEvent(json.data || json);
+                selectedEvent = resolvedEvent;
+            }
+        } catch (e) {
+            console.error("Failed to load canonical event details", e);
+        }
+
+        const resourceId = resolvedEvent.attributes?.resource;
         if (resourceId) {
             try {
                 const res = await resourceApi.get(resourceId);
@@ -269,14 +301,7 @@
             }
         }
 
-        const userId =
-            event.attributes?.["created-by"] ||
-            event.relationships?.user?.data?.id ||
-            event.relationships?.owner?.data?.id ||
-            event.relationships?.creator?.data?.id ||
-            event.attributes?.user_id ||
-            event.attributes?.userId;
-
+        const userId = resolveEventUserId(resolvedEvent);
         if (userId) {
             try {
                 const res = await userApi.get(userId);
@@ -287,6 +312,38 @@
             } catch (e) {
                 console.error("Failed to load user details", e);
             }
+        }
+    }
+
+    async function handleDeleteEvent() {
+        if (!selectedEvent || deleting || !canDelete) return;
+
+        const targetId =
+            selectedEvent.attributes?.["original-id"] || selectedEvent.id;
+        if (!targetId) return;
+
+        if (!confirm("Buchung wirklich löschen?")) return;
+
+        deleting = true;
+        try {
+            const res = await eventApi.delete(targetId);
+            if (res.ok) {
+                showDetailModal = false;
+                selectedEvent = null;
+                selectedResource = null;
+                selectedUser = null;
+                await loadEvents();
+                toast.success("Buchung gelöscht");
+            } else {
+                const msg = await extractErrorMessage(res);
+                toast.error(msg);
+            }
+        } catch (e) {
+            console.error(e);
+            const msg = await extractErrorMessage(e);
+            toast.error(msg);
+        } finally {
+            deleting = false;
         }
     }
 
@@ -1270,6 +1327,15 @@
                         class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700"
                     >
                         Bearbeiten
+                    </button>
+                {/if}
+                {#if canDelete}
+                    <button
+                        onclick={handleDeleteEvent}
+                        disabled={deleting}
+                        class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 disabled:opacity-50"
+                    >
+                        {deleting ? "Lösche..." : "Löschen"}
                     </button>
                 {/if}
                 <button

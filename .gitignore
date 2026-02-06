@@ -39,4 +39,4 @@ yarn-error.log*
 /playwright/.cache/
 tests/.auth/
 
-/.vscode/
+/.vscode

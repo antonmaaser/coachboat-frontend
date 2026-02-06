@@ -24,7 +24,7 @@ export interface Resource {
     _id: string;
     title: string;
     description: string;
-    isReady: boolean;
+    isBookable: boolean;
     isHidden: boolean;
     createdAt: string;
 }
@@ -65,7 +65,7 @@ export const createResource = (overrides: Partial<Resource> = {}): Resource => (
     _id: id(),
     title: 'Test Resource',
     description: 'A test resource',
-    isReady: true,
+    isBookable: true,
     isHidden: false,
     createdAt: new Date().toISOString(),
     ...overrides

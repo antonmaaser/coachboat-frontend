@@ -40,14 +40,15 @@
 
             const tokenData = await tokenRes.json();
 
-            // Set initial auth state
+            // Set initial auth state with organizationId from token response
             auth.set({
                 user: { id: tokenData.user_id },
                 accessToken: tokenData.access_token,
                 refreshToken: tokenData.refresh_token,
+                organizationId: tokenData.organizationId || null,
             });
 
-            // 2. Fetch User Details
+            // 2. Fetch User Details (including organizations list)
             try {
                 const userRes = await client(`/users/${tokenData.user_id}`);
                 if (userRes.ok) {
@@ -60,9 +61,11 @@
                             email: attrs.email,
                             name: attrs.name,
                             firstName: attrs["first-name"] || attrs.firstName,
-                            status: attrs.status,
                             isActive: attrs["is-active"],
+                            status: attrs.status,
                             permissions: attrs.permissions,
+                            effective_permissions: attrs.effective_permissions,
+                            organizations: attrs.organizations || [],
                         },
                     }));
                 }

@@ -2,21 +2,43 @@
     import { onMount } from "svelte";
     import { rolesApi, type Role } from "$lib/api/roles";
     import {
-        Loader2,
+        LoaderCircle,
         ShieldAlert,
         Check,
-        X,
         Shield,
-        Lock,
         Users,
     } from "lucide-svelte";
-    import { auth } from "$lib/stores/auth";
 
-    import type { JSONAPIResponse } from "$lib/api/utils";
+    import type { JSONAPIResponse } from "$lib/api/types";
 
     let loading = $state(true);
     let error = $state<string | null>(null);
     let roles = $state<Role[]>([]);
+
+    function normalizePermissions(value: unknown): string[] {
+        let parsed = value;
+        if (typeof parsed === "string") {
+            try {
+                parsed = JSON.parse(parsed);
+            } catch {
+                return [];
+            }
+        }
+        if (!Array.isArray(parsed)) return [];
+        return parsed.filter((permission): permission is string =>
+            typeof permission === "string"
+        );
+    }
+
+    function normalizeRole(role: Role): Role {
+        return {
+            ...role,
+            attributes: {
+                ...role.attributes,
+                permissions: normalizePermissions(role.attributes.permissions),
+            },
+        };
+    }
 
     onMount(async () => {
         try {
@@ -30,7 +52,7 @@
                 );
             }
             const json: JSONAPIResponse<Role[]> = await res.json();
-            roles = json.data;
+            roles = (json.data || []).map(normalizeRole);
         } catch (e: any) {
             console.error(e);
             error = e.message;
@@ -57,6 +79,8 @@
         });
         return groups;
     });
+
+    let hasMatrixData = $derived(allPermissions.length > 0);
 
     let globalRoles = $derived(
         roles
@@ -88,7 +112,7 @@
 
     {#if loading}
         <div class="flex items-center justify-center p-12">
-            <Loader2 class="w-8 h-8 text-blue-600 animate-spin" />
+            <LoaderCircle class="w-8 h-8 text-blue-600 animate-spin" />
         </div>
     {:else if error}
         <div
@@ -114,46 +138,23 @@
             </div>
         </div>
     {:else}
-        <div
-            class="bg-white dark:bg-zinc-900 rounded-lg shadow border border-zinc-200 dark:border-zinc-800 overflow-hidden"
-        >
-            <div class="overflow-x-auto">
-                <table
-                    class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700"
-                >
-                    <thead class="bg-zinc-50 dark:bg-zinc-800/50">
-                        <tr>
-                            <th
-                                scope="col"
-                                class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider sticky left-0 bg-zinc-50 dark:bg-zinc-900 z-10 border-r border-zinc-200 dark:border-zinc-700 shadow-sm"
-                            >
-                                Permission
-                            </th>
-                            {#each globalRoles as role}
+        {#if hasMatrixData}
+            <div
+                class="bg-white dark:bg-zinc-900 rounded-lg shadow border border-zinc-200 dark:border-zinc-800 overflow-hidden"
+            >
+                <div class="overflow-x-auto">
+                    <table
+                        class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700"
+                    >
+                        <thead class="bg-zinc-50 dark:bg-zinc-800/50">
+                            <tr>
                                 <th
                                     scope="col"
-                                    class="px-3 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider min-w-[100px]"
+                                    class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider sticky left-0 bg-zinc-50 dark:bg-zinc-900 z-10 border-r border-zinc-200 dark:border-zinc-700 shadow-sm"
                                 >
-                                    <div
-                                        class="flex flex-col items-center gap-1"
-                                    >
-                                        <span
-                                            class="inline-flex items-center gap-1"
-                                        >
-                                            <Shield
-                                                class="w-3 h-3 text-blue-500"
-                                            />
-                                            {role.attributes.name}
-                                        </span>
-                                    </div>
+                                    Permission
                                 </th>
-                            {/each}
-                            {#if contextRoles.length > 0}
-                                <th
-                                    scope="col"
-                                    class="px-1 py-3 text-center border-l border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 w-1"
-                                ></th>
-                                {#each contextRoles as role}
+                                {#each globalRoles as role}
                                     <th
                                         scope="col"
                                         class="px-3 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider min-w-[100px]"
@@ -164,72 +165,69 @@
                                             <span
                                                 class="inline-flex items-center gap-1"
                                             >
-                                                <Users
-                                                    class="w-3 h-3 text-amber-500"
+                                                <Shield
+                                                    class="w-3 h-3 text-blue-500"
                                                 />
-                                                {role.attributes.name} (Grp)
+                                                {role.attributes.name}
                                             </span>
                                         </div>
                                     </th>
                                 {/each}
-                            {/if}
-                        </tr>
-                    </thead>
-                    <tbody
-                        class="bg-white dark:bg-zinc-900 divide-y divide-zinc-200 dark:divide-zinc-700"
-                    >
-                        {#each Object.entries(groupedPermissions) as [resource, perms]}
-                            <tr class="bg-zinc-50/50 dark:bg-zinc-800/30">
-                                <td
-                                    colspan={globalRoles.length +
-                                        contextRoles.length +
-                                        (contextRoles.length > 0 ? 2 : 1)}
-                                    class="px-6 py-2 text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider sticky left-0 z-10"
-                                >
-                                    Resource: {resource}
-                                </td>
-                            </tr>
-                            {#each perms as permission}
-                                <tr
-                                    class="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
-                                >
-                                    <td
-                                        class="px-6 py-4 whitespace-nowrap text-sm font-medium text-zinc-900 dark:text-zinc-100 sticky left-0 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-700"
-                                    >
-                                        <code
-                                            class="px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-xs font-mono text-pink-600 dark:text-pink-400 border border-zinc-200 dark:border-zinc-700"
+                                {#if contextRoles.length > 0}
+                                    <th
+                                        scope="col"
+                                        class="px-1 py-3 text-center border-l border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 w-1"
+                                    ></th>
+                                    {#each contextRoles as role}
+                                        <th
+                                            scope="col"
+                                            class="px-3 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider min-w-[100px]"
                                         >
-                                            {permission}
-                                        </code>
-                                    </td>
-                                    {#each globalRoles as role}
-                                        <td
-                                            class="px-3 py-4 whitespace-nowrap text-center"
-                                        >
-                                            {#if role.attributes.permissions.includes(permission)}
-                                                <div
-                                                    class="flex justify-center"
+                                            <div
+                                                class="flex flex-col items-center gap-1"
+                                            >
+                                                <span
+                                                    class="inline-flex items-center gap-1"
                                                 >
-                                                    <Check
-                                                        class="w-5 h-5 text-green-500"
+                                                    <Users
+                                                        class="w-3 h-3 text-amber-500"
                                                     />
-                                                </div>
-                                            {:else}
-                                                <div
-                                                    class="flex justify-center opacity-10"
-                                                >
-                                                    <div
-                                                        class="w-1.5 h-1.5 rounded-full bg-zinc-300 dark:bg-zinc-600"
-                                                    ></div>
-                                                </div>
-                                            {/if}
-                                        </td>
+                                                    {role.attributes.name} (Grp)
+                                                </span>
+                                            </div>
+                                        </th>
                                     {/each}
-                                    {#if contextRoles.length > 0}
+                                {/if}
+                            </tr>
+                        </thead>
+                        <tbody
+                            class="bg-white dark:bg-zinc-900 divide-y divide-zinc-200 dark:divide-zinc-700"
+                        >
+                            {#each Object.entries(groupedPermissions) as [resource, perms]}
+                                <tr class="bg-zinc-50/50 dark:bg-zinc-800/30">
+                                    <td
+                                        colspan={globalRoles.length +
+                                            contextRoles.length +
+                                            (contextRoles.length > 0 ? 2 : 1)}
+                                        class="px-6 py-2 text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider sticky left-0 z-10"
+                                    >
+                                        Resource: {resource}
+                                    </td>
+                                </tr>
+                                {#each perms as permission}
+                                    <tr
+                                        class="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
+                                    >
                                         <td
-                                            class="px-1 py-4 border-l border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/20"
-                                        ></td>
-                                        {#each contextRoles as role}
+                                            class="px-6 py-4 whitespace-nowrap text-sm font-medium text-zinc-900 dark:text-zinc-100 sticky left-0 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-700"
+                                        >
+                                            <code
+                                                class="px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-xs font-mono text-pink-600 dark:text-pink-400 border border-zinc-200 dark:border-zinc-700"
+                                            >
+                                                {permission}
+                                            </code>
+                                        </td>
+                                        {#each globalRoles as role}
                                             <td
                                                 class="px-3 py-4 whitespace-nowrap text-center"
                                             >
@@ -252,13 +250,50 @@
                                                 {/if}
                                             </td>
                                         {/each}
-                                    {/if}
-                                </tr>
+                                        {#if contextRoles.length > 0}
+                                            <td
+                                                class="px-1 py-4 border-l border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/20"
+                                            ></td>
+                                            {#each contextRoles as role}
+                                                <td
+                                                    class="px-3 py-4 whitespace-nowrap text-center"
+                                                >
+                                                    {#if role.attributes.permissions.includes(permission)}
+                                                        <div
+                                                            class="flex justify-center"
+                                                        >
+                                                            <Check
+                                                                class="w-5 h-5 text-green-500"
+                                                            />
+                                                        </div>
+                                                    {:else}
+                                                        <div
+                                                            class="flex justify-center opacity-10"
+                                                        >
+                                                            <div
+                                                                class="w-1.5 h-1.5 rounded-full bg-zinc-300 dark:bg-zinc-600"
+                                                            ></div>
+                                                        </div>
+                                                    {/if}
+                                                </td>
+                                            {/each}
+                                        {/if}
+                                    </tr>
+                                {/each}
                             {/each}
-                        {/each}
-                    </tbody>
-                </table>
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
+        {:else}
+            <div
+                class="rounded-md bg-amber-50 dark:bg-amber-900/20 p-4 border border-amber-200 dark:border-amber-800"
+            >
+                <p class="text-sm text-amber-800 dark:text-amber-200">
+                    Keine Berechtigungen gefunden. Die Rollen sind geladen, aber
+                    enthalten derzeit keine `permissions`.
+                </p>
+            </div>
+        {/if}
     {/if}
 </div>

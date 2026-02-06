@@ -1,31 +1,5 @@
 import { client } from './client';
-
-export interface EventAttributes {
-    title: string;
-    date: string; // YYYY-MM-DD
-    'start-date': string | number; // Can be ISO string or seconds from midnight
-    'end-date': string | number; // Can be ISO string or seconds from midnight
-    resource?: string; // Resource ID (UUID string)
-    'created-by'?: string; // User ID (UUID string)
-    'created-at'?: string;
-    'is-recurring'?: boolean;
-    'recurrence-freq'?: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
-    'recurrence-interval'?: number;
-    'recurrence-end-date'?: string;
-    // Returned for recurring event instances
-    'original-id'?: string;
-    'recurrence-rule'?: {
-        freq: string;
-        interval: number;
-        end: string | null;
-    };
-}
-
-export interface Event {
-    id: string;
-    type: 'event';
-    attributes: EventAttributes;
-}
+import type { EventResource, GenericListDocument } from './types';
 
 export const eventApi = {
     list: (params: {
@@ -44,19 +18,19 @@ export const eventApi = {
         if (params.offset) query['page[offset]'] = params.offset.toString();
         if (params.sort) query['sort'] = params.sort;
 
-        return client(`/events`, { params: query });
+        return client<GenericListDocument<EventResource>>(`/events`, { params: query });
     },
 
-    get: (id: string) => client(`/events/${id}`),
+    get: (id: string) => client<{ data: EventResource }>(`/events/${id}`),
 
-    create: (attributes: EventAttributes) =>
-        client(`/events`, {
+    create: (attributes: EventResource['attributes']) =>
+        client<{ data: EventResource }>(`/events`, {
             method: 'POST',
             body: JSON.stringify({ data: { type: 'event', attributes } })
         }),
 
-    update: (id: string, attributes: Partial<EventAttributes>) =>
-        client(`/events/${id}`, {
+    update: (id: string, attributes: Partial<EventResource['attributes']>) =>
+        client<{ data: EventResource }>(`/events/${id}`, {
             method: 'PATCH',
             body: JSON.stringify({ data: { type: 'event', attributes } })
         }),

@@ -22,28 +22,62 @@
 
     let { children } = $props();
     let mobileMenuOpen = $state(false);
+    let lastHydrationKey = $state<string | null>(null);
 
     $effect(() => {
-        if (browser) {
-            if (!$auth.accessToken) {
-                goto("/login");
-            } else if ($auth.user && !$auth.user.firstName) {
-                client(`/users/${$auth.user.id}`).then(async (res) => {
-                    if (res.ok) {
-                        const json = await res.json();
-                        const attrs = json.data.attributes;
-                        auth.update((s) => ({
-                            ...s,
-                            user: {
-                                ...s.user!,
-                                firstName:
-                                    attrs["first-name"] || attrs.firstName,
-                                name: attrs.name,
-                            },
-                        }));
-                    }
+        if (!browser) return;
+
+        if (!$auth.accessToken) {
+            lastHydrationKey = null;
+            goto("/login");
+            return;
+        }
+
+        const userId = $auth.user?.id;
+        if (!userId) return;
+
+        const hydrationKey = `${userId}:${$auth.organizationId || ""}`;
+        if (hydrationKey === lastHydrationKey) return;
+        lastHydrationKey = hydrationKey;
+
+        client(`/users/${userId}`)
+            .then(async (res) => {
+                if (!res.ok) return;
+                const json = await res.json();
+                const attrs = json.data.attributes;
+                auth.update((s) => {
+                    if (!s.user || s.user.id !== userId) return s;
+                    return {
+                        ...s,
+                        user: {
+                            ...s.user,
+                            email: attrs.email,
+                            name: attrs.name,
+                            firstName: attrs["first-name"] || attrs.firstName,
+                            isActive: attrs["is-active"],
+                            status: attrs.status,
+                            permissions: attrs.permissions,
+                            effective_permissions: attrs.effective_permissions,
+                            organizations: attrs.organizations || [],
+                        },
+                    };
                 });
-            }
+            })
+            .catch((err) => {
+                console.error("Failed to refresh user profile", err);
+            });
+    });
+
+    $effect(() => {
+        if (
+            $auth.user?.organizations &&
+            $auth.user.organizations.length > 0 &&
+            !$auth.organizationId
+        ) {
+            auth.update((s) => ({
+                ...s,
+                organizationId: s.user?.organizations?.[0]?.id || null,
+            }));
         }
     });
 
@@ -112,6 +146,50 @@
                 <X class="w-6 h-6" />
             </button>
         </div>
+
+        <!-- Org Switcher -->
+        {#if $auth.user?.organizations && $auth.user.organizations.length > 1}
+            <div class="px-4 pt-4">
+                <div class="relative">
+                    <select
+                        class="w-full appearance-none bg-zinc-50 dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 text-zinc-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 pr-8"
+                        value={$auth.organizationId}
+                        onchange={(e) => {
+                            // @ts-ignore
+                            import("$lib/api/client").then((m) =>
+                                m.switchOrganization(
+                                    (e.target as HTMLSelectElement).value,
+                                ),
+                            );
+                        }}
+                    >
+                        {#each $auth.user.organizations as org}
+                            <option
+                                value={org.id}
+                                selected={org.id === $auth.organizationId}
+                            >
+                                {org.name}
+                            </option>
+                        {/each}
+                    </select>
+                    <div
+                        class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-zinc-700 dark:text-zinc-300"
+                    >
+                        <svg
+                            class="fill-current h-4 w-4"
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 20 20"
+                            ><path
+                                d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"
+                            /></svg
+                        >
+                    </div>
+                </div>
+                <div class="text-xs text-zinc-500 mt-1 px-1">
+                    Organisation wechseln
+                </div>
+            </div>
+        {/if}
 
         <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
             <a

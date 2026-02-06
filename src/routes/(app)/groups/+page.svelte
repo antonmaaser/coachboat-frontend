@@ -56,7 +56,7 @@
             const attributes: Partial<GroupAttributes> = {
                 title: formTitle,
                 description: formDescription,
-                visibility: formVisibility as "all" | "admin" | "none",
+                visibility: formVisibility as "all" | "hidden",
             };
 
             let res;
@@ -283,19 +283,21 @@
                                                     <Eye class="w-4 h-4" />
                                                     Öffnen
                                                 </a>
-                                                <button
-                                                    onclick={() => {
-                                                        activeMenu = null;
-                                                        selectedGroupForMembers =
-                                                            group;
-                                                        showMembersModal = true;
-                                                    }}
-                                                    class="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2"
-                                                >
-                                                    <UserPlus class="w-4 h-4" />
-                                                    Mitglieder
-                                                </button>
-                                                {#if hasPermission($auth.user, "groups:update")}
+                                                {#if hasPermission($auth.user, "groups:read", group.id) || hasPermission($auth.user, "groups:update:any", group.id)}
+                                                    <button
+                                                        onclick={() => {
+                                                            activeMenu = null;
+                                                            selectedGroupForMembers =
+                                                                group;
+                                                            showMembersModal = true;
+                                                        }}
+                                                        class="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2"
+                                                    >
+                                                        <UserPlus class="w-4 h-4" />
+                                                        Mitglieder
+                                                    </button>
+                                                {/if}
+                                                {#if hasPermission($auth.user, "groups:update:any", group.id)}
                                                     <button
                                                         onclick={() => {
                                                             activeMenu = null;
@@ -311,7 +313,7 @@
                                                         Bearbeiten
                                                     </button>
                                                 {/if}
-                                                {#if hasPermission($auth.user, "groups:delete")}
+                                                {#if hasPermission($auth.user, "groups:delete:any", group.id)}
                                                     <button
                                                         onclick={() => {
                                                             activeMenu = null;
@@ -373,9 +375,8 @@
                         label="Visibility"
                         bind:value={formVisibility}
                         options={[
-                            { value: "all", label: "All" },
-                            { value: "admin", label: "Admin" },
-                            { value: "none", label: "None" },
+                            { value: "all", label: "Für Alle" },
+                            { value: "hidden", label: "Versteckt" },
                         ]}
                         searchable={false}
                     />

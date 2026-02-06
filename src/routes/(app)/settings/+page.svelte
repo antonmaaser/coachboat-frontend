@@ -4,7 +4,7 @@
         resourceCategoryApi,
         type ResourceCategoryAttributes,
     } from "$lib/api/resource-categories";
-    import { auth } from "$lib/stores/auth";
+    import { auth, hasPermission } from "$lib/stores/auth";
     import {
         Loader2,
         CheckCircle2,
@@ -25,7 +25,13 @@
     let success = $state(false);
     let error = $state("");
 
-    let isAdmin = $derived($auth.user?.status && $auth.user.status >= 3);
+    let canManageCategories = $derived(
+        hasPermission(
+            $auth.user,
+            "resource_categories:manage",
+            $auth.organizationId,
+        ),
+    );
 
     // Categories State
     let categories = $state<any[]>([]);
@@ -41,7 +47,7 @@
     let catFormError = $state("");
 
     async function loadCategories() {
-        if (!isAdmin) {
+        if (!canManageCategories) {
             categoriesLoading = false;
             return;
         }
@@ -61,7 +67,11 @@
 
     $effect(() => {
         // Load categories if admin status changes to true (e.g. initial load or login)
-        if (isAdmin && categories.length === 0 && categoriesLoading) {
+        if (
+            canManageCategories &&
+            categories.length === 0 &&
+            categoriesLoading
+        ) {
             loadCategories();
         }
     });
@@ -195,7 +205,7 @@
         </h1>
     </div>
 
-    {#if isAdmin}
+    {#if canManageCategories}
         <div
             class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 max-w-2xl"
         >

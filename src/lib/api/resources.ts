@@ -3,7 +3,7 @@ import { client } from './client';
 export interface ResourceAttributes {
     title: string;
     description?: string;
-    'is-ready'?: boolean;
+    'is-bookable'?: boolean;
     'is-hidden'?: boolean;
     'category-id'?: string | null;
     'created-at'?: string;
