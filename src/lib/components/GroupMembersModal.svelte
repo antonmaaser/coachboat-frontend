@@ -14,6 +14,7 @@
         Check,
     } from "lucide-svelte";
     import SearchableSelect from "$lib/components/ui/SearchableSelect.svelte";
+    import Button from "$lib/components/ui/Button.svelte";
     import { portal } from "$lib/actions/portal";
 
     type UserLike = {
@@ -63,11 +64,11 @@
     }
 
     function roleLabel(role: GroupMemberRole): string {
-        if (role === "owner") return "Owner";
-        if (role === "admin") return "Admin";
+        if (role === "owner") return "Inhaber";
+        if (role === "admin") return "Administrator";
         if (role === "moderator") return "Moderator";
-        if (role === "viewer") return "Viewer";
-        return "Member";
+        if (role === "viewer") return "Zuschauer";
+        return "Mitglied";
     }
 
     function roleColor(role: GroupMemberRole): string {
@@ -195,7 +196,7 @@
             }
 
             if (!membersRes.ok) {
-                throw new Error("Failed to load group members");
+                throw new Error("Gruppenmitglieder konnten nicht geladen werden");
             }
 
             const membersJson = await membersRes.json();
@@ -216,7 +217,7 @@
             );
         } catch (e: any) {
             console.error(e);
-            error = "Failed to load members";
+            error = "Mitglieder konnten nicht geladen werden";
         } finally {
             loading = false;
         }
@@ -246,11 +247,11 @@
                 selectedRole = "member";
                 loadData();
             } else {
-                alert("Failed to add member");
+                alert("Mitglied konnte nicht hinzugefügt werden");
             }
         } catch (e) {
             console.error(e);
-            alert("Error adding member");
+            alert("Fehler beim Hinzufügen des Mitglieds");
         } finally {
             addingMember = false;
         }
@@ -266,12 +267,12 @@
             if (res.ok) {
                 loadData();
             } else {
-                alert("Failed to update role");
+                alert("Rolle konnte nicht aktualisiert werden");
                 loadData();
             }
         } catch (e) {
             console.error(e);
-            alert("Error updating role");
+            alert("Fehler beim Aktualisieren der Rolle");
         }
     }
 
@@ -280,18 +281,18 @@
             alert("Keine Berechtigung, Mitglieder zu bearbeiten");
             return;
         }
-        if (!confirm("Remove this user from the group?")) return;
+        if (!confirm("Diesen Benutzer aus der Gruppe entfernen?")) return;
 
         try {
             const res = await groupApi.removeMember(group.id, userId);
             if (res.ok) {
                 loadData();
             } else {
-                alert("Failed to remove member");
+                alert("Mitglied konnte nicht entfernt werden");
             }
         } catch (e) {
             console.error(e);
-            alert("Error removing member");
+            alert("Fehler beim Entfernen des Mitglieds");
         }
     }
 
@@ -332,12 +333,15 @@
                 <h2 class="text-xl font-bold text-zinc-900 dark:text-white">
                     Mitglieder: {group?.attributes.title}
                 </h2>
-                <button
+                <Button
+                    variant="icon"
+                    tone="neutral"
+                    iconOnly
+                    ariaLabel="Schließen"
                     onclick={() => (show = false)}
-                    class="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
                 >
                     <X class="w-5 h-5" />
-                </button>
+                </Button>
             </div>
 
             <div
@@ -382,13 +386,15 @@
                                     class="w-full sm:w-40"
                                 />
 
-                                <button
+                                <Button
+                                    variant="solid"
+                                    tone="primary"
+                                    size="sm"
                                     onclick={handleAddMember}
                                     disabled={!selectedUserId || addingMember}
-                                    class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                                 >
                                     Hinzu
-                                </button>
+                                </Button>
                             </div>
                         </div>
                     {/if}
@@ -442,19 +448,21 @@
                                             <div
                                                 class="relative inline-block text-left"
                                             >
-                                                <button
-                                                    onclick={(e) =>
+                                                <Button
+                                                    variant="icon"
+                                                    tone="neutral"
+                                                    iconOnly
+                                                    ariaLabel="Mitgliedsaktionen"
+                                                    onclick={(e: MouseEvent) =>
                                                         toggleMenu(
                                                             e,
                                                             member.id,
                                                         )}
-                                                    aria-label="Mitgliedsaktionen"
-                                                    class="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
                                                 >
                                                     <MoreVertical
                                                         class="w-5 h-5"
                                                     />
-                                                </button>
+                                                </Button>
                                             </div>
                                         {/if}
                                     </div>
@@ -478,12 +486,13 @@
             <div
                 class="p-6 border-t border-zinc-100 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/30 rounded-b-xl flex justify-end"
             >
-                <button
+                <Button
+                    variant="outline"
+                    tone="neutral"
                     onclick={() => (show = false)}
-                    class="px-4 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
                 >
                     Schließen
-                </button>
+                </Button>
             </div>
         </div>
     </div>
@@ -502,39 +511,45 @@
             >
                 {#each GROUP_MEMBER_ROLES as role}
                     {@const RoleIcon = getRoleIcon(role)}
-                    <button
+                    <Button
+                        variant="menu"
+                        tone="neutral"
+                        align="left"
+                        compact
                         onclick={() => {
                             handleUpdateMember(activeMenu!, role);
                             activeMenu = null;
                         }}
-                        class="w-full text-left px-4 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center justify-between group"
                     >
-                        <div class="flex items-center gap-2">
+                        <div class="flex w-full items-center justify-between gap-2 group">
                             <RoleIcon
                                 class="w-4 h-4 text-zinc-400 group-hover:text-zinc-600 dark:text-zinc-500 dark:group-hover:text-zinc-300"
                             />
-                            <span>{roleLabel(role)}</span>
+                            <span class="flex-1">{roleLabel(role)}</span>
+                            {#if activeMember?.groupRole === role}
+                                <Check class="w-4 h-4 text-blue-600" />
+                            {/if}
                         </div>
-                        {#if activeMember?.groupRole === role}
-                            <Check class="w-4 h-4 text-blue-600" />
-                        {/if}
-                    </button>
+                    </Button>
                 {/each}
 
                 {#if activeMember && canRemoveUser(activeMember)}
                     <div
                         class="border-t border-zinc-100 dark:border-zinc-700 my-1"
                     ></div>
-                    <button
+                    <Button
+                        variant="menu"
+                        tone="danger"
+                        align="left"
+                        compact
                         onclick={() => {
                             handleRemoveMember(activeMember.id);
                             activeMenu = null;
                         }}
-                        class="w-full text-left px-4 py-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm text-red-600 dark:text-red-400 flex items-center gap-2"
                     >
                         <Trash2 class="w-4 h-4" />
                         Entfernen
-                    </button>
+                    </Button>
                 {/if}
             </div>
         </div>

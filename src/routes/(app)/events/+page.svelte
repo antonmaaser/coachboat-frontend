@@ -19,6 +19,10 @@
     import SearchableSelect from "$lib/components/ui/SearchableSelect.svelte";
     import { extractErrorMessage } from "$lib/utils/error";
     import ErrorAlert from "$lib/components/ui/ErrorAlert.svelte";
+    import Button from "$lib/components/ui/Button.svelte";
+    import TabToggle, {
+        type TabToggleOption,
+    } from "$lib/components/ui/TabToggle.svelte";
     import Toggle from "$lib/components/ui/Toggle.svelte";
     import { toast } from "$lib/stores/toast";
 
@@ -31,12 +35,30 @@
     let loading = $state(false);
     let error = $state("");
     let viewMode = $state<"month" | "week" | "agenda">("month");
+    const viewModeOptions = [
+        {
+            value: "month",
+            icon: Calendar,
+            title: "Monatsansicht",
+        },
+        {
+            value: "week",
+            icon: CalendarDays,
+            title: "Wochenansicht",
+            hideOnMobile: true,
+        },
+        {
+            value: "agenda",
+            icon: List,
+            title: "Terminliste",
+        },
+    ] satisfies TabToggleOption[];
 
     // Derived values for Calendar
     let year = $derived(currentDate.getFullYear());
     let month = $derived(currentDate.getMonth()); // 0-11
     let monthName = $derived(
-        currentDate.toLocaleString("default", { month: "long" }),
+        currentDate.toLocaleString("de-DE", { month: "long" }),
     );
 
     let weekStart = $derived.by(() => {
@@ -52,9 +74,9 @@
             const end = new Date(start);
             end.setDate(end.getDate() + 6);
             if (start.getMonth() === end.getMonth()) {
-                return `${start.getDate()} - ${end.getDate()}. ${start.toLocaleString("default", { month: "long" })} ${start.getFullYear()}`;
+                return `${start.getDate()} - ${end.getDate()}. ${start.toLocaleString("de-DE", { month: "long" })} ${start.getFullYear()}`;
             }
-            return `${start.getDate()}. ${start.toLocaleString("default", { month: "short" })} - ${end.getDate()}. ${end.toLocaleString("default", { month: "short" })} ${end.getFullYear()}`;
+            return `${start.getDate()}. ${start.toLocaleString("de-DE", { month: "short" })} - ${end.getDate()}. ${end.toLocaleString("de-DE", { month: "short" })} ${end.getFullYear()}`;
         }
         return `${monthName} ${year}`;
     });
@@ -549,100 +571,79 @@
             <div
                 class="flex items-center justify-between bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 shadow-sm w-full md:w-auto"
             >
-                <button
+                <Button
+                    variant="icon"
+                    tone="neutral"
+                    edge="left"
+                    iconOnly
+                    ariaLabel="Vorheriger Zeitraum"
                     onclick={prevPeriod}
-                    class="p-2 hover:bg-zinc-50 dark:hover:bg-zinc-700 rounded-l-lg transition-colors"
                 >
                     <ChevronLeft
                         class="w-5 h-5 text-zinc-600 dark:text-zinc-400"
                     />
-                </button>
+                </Button>
                 <span
                     class="px-4 py-2 font-medium flex-1 md:flex-none text-center text-zinc-900 dark:text-white border-x border-zinc-200 dark:border-zinc-700 min-w-[200px]"
                 >
                     {currentPeriodLabel}
                 </span>
-                <button
+                <Button
+                    variant="icon"
+                    tone="neutral"
+                    edge="right"
+                    iconOnly
+                    ariaLabel="Nächster Zeitraum"
                     onclick={nextPeriod}
-                    class="p-2 hover:bg-zinc-50 dark:hover:bg-zinc-700 rounded-r-lg transition-colors"
                 >
                     <ChevronRight
                         class="w-5 h-5 text-zinc-600 dark:text-zinc-400"
                     />
-                </button>
+                </Button>
             </div>
 
             <!-- View Switcher -->
-            <div
-                class="flex items-center bg-zinc-100 dark:bg-zinc-800/50 p-1 rounded-lg border border-zinc-200 dark:border-zinc-700"
-            >
-                <button
-                    class="p-1.5 rounded-md transition-all {viewMode === 'month'
-                        ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-white'
-                        : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'}"
-                    onclick={() => (viewMode = "month")}
-                    title="Monatsansicht"
-                >
-                    <Calendar class="w-4 h-4" />
-                </button>
-                <button
-                    class="p-1.5 rounded-md transition-all hidden md:block {viewMode ===
-                    'week'
-                        ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-white'
-                        : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'}"
-                    onclick={() => (viewMode = "week")}
-                    title="Wochenansicht"
-                >
-                    <CalendarDays class="w-4 h-4" />
-                </button>
-                <button
-                    class="p-1.5 rounded-md transition-all {viewMode ===
-                    'agenda'
-                        ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-white'
-                        : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'}"
-                    onclick={() => (viewMode = "agenda")}
-                    title="Agenda"
-                >
-                    <List class="w-4 h-4" />
-                </button>
-            </div>
+            <TabToggle
+                size="xs"
+                bordered
+                options={viewModeOptions}
+                value={viewMode}
+                onchange={(nextValue) => {
+                    viewMode = nextValue as "month" | "week" | "agenda";
+                }}
+            />
         </div>
 
         {#if canCreate}
-            <button
+            <Button
+                variant="solid"
+                tone="primary"
+                width="full-mobile"
+                elevated
                 onclick={openCreateModal}
-                class="w-full md:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-blue-600/20"
             >
                 <Plus class="w-5 h-5" />
                 Neue Buchung
-            </button>
+            </Button>
         {/if}
     </div>
 
     <!-- Category Filter -->
     {#if categories.length > 0}
         <div class="flex flex-wrap gap-2">
-            <button
-                class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors border"
-                class:bg-zinc-900={!selectedCategoryId}
-                class:text-white={!selectedCategoryId}
-                class:border-zinc-900={!selectedCategoryId}
-                class:bg-white={selectedCategoryId}
-                class:text-zinc-600={selectedCategoryId}
-                class:border-zinc-200={selectedCategoryId}
-                class:dark:bg-white={!selectedCategoryId}
-                class:dark:text-zinc-900={!selectedCategoryId}
-                class:dark:border-white={!selectedCategoryId}
-                class:dark:bg-zinc-800={selectedCategoryId}
-                class:dark:text-zinc-400={selectedCategoryId}
-                class:dark:border-zinc-700={selectedCategoryId}
+            <Button
+                variant="chip"
+                tone="neutral"
+                active={!selectedCategoryId}
                 onclick={() => (selectedCategoryId = null)}
             >
                 Alle
-            </button>
+            </Button>
             {#each categories as category}
-                <button
-                    class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors border"
+                <Button
+                    variant="chip"
+                    tone="primary"
+                    active={selectedCategoryId === category.id}
                     style={selectedCategoryId === category.id
                         ? `background-color: ${category.attributes.color}; color: white; border-color: ${category.attributes.color}`
                         : `background-color: transparent; color: ${category.attributes.color}; border-color: ${category.attributes.color}40`}
@@ -657,7 +658,7 @@
                         <Icon class="w-4 h-4" />
                     {/if}
                     {category.attributes.title}
-                </button>
+                </Button>
             {/each}
         </div>
     {/if}
@@ -683,10 +684,9 @@
                         month === new Date().getMonth() &&
                         year === new Date().getFullYear()}
                     {@const hasEvents = getEventsForDay(day).length > 0}
-                    <button
-                        class="flex flex-col items-center justify-center min-w-[3.5rem] h-16 rounded-xl border transition-all relative {isSelected
-                            ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20'
-                            : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700'}"
+                    <Button
+                        variant="day"
+                        active={isSelected}
                         onclick={() => (selectedDay = day)}
                     >
                         <span class="text-xs font-medium opacity-80">
@@ -712,7 +712,7 @@
                                 ></div>
                             {/if}
                         </div>
-                    </button>
+                    </Button>
                 {/each}
             </div>
 
@@ -1205,24 +1205,26 @@
         {/if}
 
         <div class="flex justify-end gap-3 pt-2">
-            <button
+            <Button
+                variant="outline"
+                tone="neutral"
                 type="button"
                 onclick={() => (showCreateModal = false)}
-                class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-md hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-300 dark:border-zinc-600 dark:hover:bg-zinc-600"
             >
                 Abbrechen
-            </button>
-            <button
+            </Button>
+            <Button
+                variant="solid"
+                tone="primary"
                 type="submit"
                 disabled={creating}
-                class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
             >
                 {creating
-                    ? "Saving..."
+                    ? "Speichern..."
                     : editTargetId
                       ? "Buchung aktualisieren"
                       : "Buchung erstellen"}
-            </button>
+            </Button>
         </div>
     </form>
 </Modal>
@@ -1322,28 +1324,31 @@
 
             <div class="flex justify-end gap-2 pt-2">
                 {#if canEdit}
-                    <button
+                    <Button
+                        variant="solid"
+                        tone="primary"
                         onclick={handleEdit}
-                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700"
                     >
                         Bearbeiten
-                    </button>
+                    </Button>
                 {/if}
                 {#if canDelete}
-                    <button
+                    <Button
+                        variant="solid"
+                        tone="danger"
                         onclick={handleDeleteEvent}
                         disabled={deleting}
-                        class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 disabled:opacity-50"
                     >
                         {deleting ? "Lösche..." : "Löschen"}
-                    </button>
+                    </Button>
                 {/if}
-                <button
+                <Button
+                    variant="outline"
+                    tone="neutral"
                     onclick={() => (showDetailModal = false)}
-                    class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-md hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-300 dark:border-zinc-600 dark:hover:bg-zinc-600"
                 >
                     Schließen
-                </button>
+                </Button>
             </div>
         </div>
     {/if}

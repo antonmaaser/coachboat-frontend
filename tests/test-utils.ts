@@ -103,7 +103,10 @@ function getCommonHandlers(user: any) {
                     'first-name': user.firstName,
                     status: user.status,
                     permissions: user.permissions,
-                    effective_permissions: user.effective_permissions
+                    effective_permissions: user.effective_permissions,
+                    organizations: user.organizationId
+                        ? [{ id: user.organizationId, name: 'Test Org', slug: 'test-org' }]
+                        : [],
                 }
             }
         },
@@ -112,6 +115,8 @@ function getCommonHandlers(user: any) {
         'GET /groups': [],
         'GET /resource-categories': [],
         'GET /events': [],
+        'GET /forms': { data: [] },
+        'GET /notifications': { data: [] },
     };
 }
 

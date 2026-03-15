@@ -1,7 +1,7 @@
 <script lang="ts">
     import { auth, hasPermission } from "$lib/stores/auth";
     import TodoList from "$lib/components/TodoList.svelte";
-    import { Calendar, DraftingCompass, Users } from "lucide-svelte";
+    import { Calendar, DraftingCompass, Users, Bell, ClipboardList, MessageSquare } from "lucide-svelte";
     import { onMount } from "svelte";
     import { eventApi } from "$lib/api/events";
     import { resourceApi } from "$lib/api/resources";
@@ -12,6 +12,14 @@
     let canOpenEvents = $derived(hasPermission($auth.user, "events:read"));
     let canOpenResources = $derived(
         hasPermission($auth.user, "resources:read"),
+    );
+    let canOpenForms = $derived(hasPermission($auth.user, "forms:read"));
+    let canOpenNotifications = $derived(
+        hasPermission($auth.user, "notifications:read"),
+    );
+    let canOpenMessages = $derived(
+        hasPermission($auth.user, "messages:read") ||
+            hasPermission($auth.user, "messages:create"),
     );
 
     onMount(async () => {
@@ -46,7 +54,7 @@
 <div class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
     <div class="flex items-center justify-between">
         <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">
-            Dashboard
+            Übersicht
         </h1>
         <span class="text-sm text-zinc-500 dark:text-zinc-400">
             <!-- Mobile Date (Short) -->
@@ -78,7 +86,7 @@
                 Willkommen zurück
             </h3>
             <p class="text-2xl font-bold text-zinc-900 dark:text-white mt-2">
-                {$auth.user?.firstName || "User"}
+                {$auth.user?.firstName || "Benutzer"}
             </p>
             <div
                 class="mt-4 flex items-center text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 w-fit px-2 py-1 rounded-full"
@@ -166,7 +174,7 @@
         <div
             class="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-xl shadow-lg text-white"
         >
-            <h3 class="text-blue-100 font-medium">Quick Actions</h3>
+            <h3 class="text-blue-100 font-medium">Schnellaktionen</h3>
             <div class="mt-4 space-y-2">
                 {#if canOpenEvents}
                     <a
@@ -193,6 +201,33 @@
                     <Users class="w-4 h-4" />
                     Gruppen verwalten
                 </a>
+                {#if canOpenForms}
+                    <a
+                        href="/forms"
+                        class="flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-colors px-3 py-2 rounded-lg text-sm font-medium text-white"
+                    >
+                        <ClipboardList class="w-4 h-4" />
+                        Formulare
+                    </a>
+                {/if}
+                {#if canOpenNotifications}
+                    <a
+                        href="/notifications"
+                        class="flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-colors px-3 py-2 rounded-lg text-sm font-medium text-white"
+                    >
+                        <Bell class="w-4 h-4" />
+                        Benachrichtigungen
+                    </a>
+                {/if}
+                {#if canOpenMessages}
+                    <a
+                        href="/messages"
+                        class="flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-colors px-3 py-2 rounded-lg text-sm font-medium text-white"
+                    >
+                        <MessageSquare class="w-4 h-4" />
+                        Nachrichten
+                    </a>
+                {/if}
             </div>
         </div>
     </div>

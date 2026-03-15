@@ -2,10 +2,28 @@ import { get } from 'svelte/store';
 import { auth, logout } from '../stores/auth';
 import { API_BASE, AUTH_BASE } from '../config';
 
+type QueryParamValue = string | number | boolean | null | undefined;
+type QueryParams = Record<string, QueryParamValue | QueryParamValue[]>;
+
 interface RequestOptions extends RequestInit {
-    params?: Record<string, string>;
+    params?: QueryParams;
     headers?: Record<string, string>;
     skipAuth?: boolean;
+    organizationId?: string | null;
+}
+
+function buildQueryString(params: QueryParams): string {
+    const query = new URLSearchParams();
+
+    for (const [key, rawValue] of Object.entries(params)) {
+        const values = Array.isArray(rawValue) ? rawValue : [rawValue];
+        for (const value of values) {
+            if (value === null || value === undefined) continue;
+            query.append(key, String(value));
+        }
+    }
+
+    return query.toString();
 }
 
 async function refreshAccessToken(): Promise<boolean> {
@@ -31,7 +49,7 @@ async function refreshAccessToken(): Promise<boolean> {
                 accessToken: data.access_token,
                 refreshToken: data.refresh_token, // Update if rotated
                 user: { ...s.user, id: data.user_id }, // Ensure ID is consistent
-                organizationId: data.organizationId // Update organization context
+                organizationId: data.organizationId ?? s.organizationId // Update organization context
             }));
             return true;
         }
@@ -42,7 +60,8 @@ async function refreshAccessToken(): Promise<boolean> {
 }
 
 export async function client<T = any>(endpoint: string, options: RequestOptions = {}): Promise<Response & { json: () => Promise<T>; ok: boolean; status: number; }> {
-    const { params, skipAuth, ...init } = options;
+    const { params, skipAuth, organizationId, ...init } = options;
+    const isAbsolute = endpoint.startsWith('http');
 
     // Determine base URL (Auth endpoints go to AUTH_BASE, others API_BASE)
     // Constants are relative paths (proxied).
@@ -50,15 +69,19 @@ export async function client<T = any>(endpoint: string, options: RequestOptions 
     // If endpoint starts with AUTH_BASE, use it as is (relative to root).
     // Otherwise, prepend API_BASE.
     let url = endpoint;
-    if (!endpoint.startsWith('http')) {
+    let isApiRequest = false;
+    if (!isAbsolute) {
         if (!endpoint.startsWith(AUTH_BASE)) {
             url = `${API_BASE}${endpoint}`;
+            isApiRequest = true;
         }
     }
 
     if (params) {
-        const query = new URLSearchParams(params).toString();
-        url += `?${query}`;
+        const query = buildQueryString(params);
+        if (query) {
+            url += `${url.includes('?') ? '&' : '?'}${query}`;
+        }
     }
 
     const headers = new Headers(init.headers);
@@ -72,6 +95,11 @@ export async function client<T = any>(endpoint: string, options: RequestOptions 
     const state = get(auth);
     if (!skipAuth && state.accessToken) {
         headers.set('Authorization', `Bearer ${state.accessToken}`);
+    }
+
+    const resolvedOrgId = organizationId === undefined ? (state.organizationId ?? null) : organizationId;
+    if (isApiRequest && typeof resolvedOrgId === 'string' && resolvedOrgId.trim() !== '') {
+        headers.set('X-Organization-Id', resolvedOrgId);
     }
 
     let response;
@@ -118,7 +146,7 @@ export async function switchOrganization(organizationId: string): Promise<boolea
                 ...s,
                 accessToken: data.access_token,
                 refreshToken: data.refresh_token,
-                organizationId: data.organizationId
+                organizationId: data.organizationId ?? s.organizationId
             }));
 
             // Optionally reload page to refresh data context

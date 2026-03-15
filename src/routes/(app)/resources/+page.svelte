@@ -9,6 +9,7 @@
     import ErrorAlert from "$lib/components/ui/ErrorAlert.svelte";
     import TextInput from "$lib/components/ui/TextInput.svelte";
     import SearchableSelect from "$lib/components/ui/SearchableSelect.svelte";
+    import Button from "$lib/components/ui/Button.svelte";
     import TodoList from "$lib/components/TodoList.svelte";
 
     import {
@@ -99,7 +100,7 @@
     }
 
     async function handleDelete(resource: any) {
-        if (!confirm("Are you sure you want to delete this resource?")) return;
+        if (!confirm("Möchten Sie dieses Material wirklich löschen?")) return;
         try {
             const res = await resourceApi.delete(resource.id);
             if (res.ok) {
@@ -238,13 +239,16 @@
         </h1>
 
         {#if isAdmin}
-            <button
+            <Button
+                variant="solid"
+                tone="primary"
+                width="full-mobile"
+                elevated
                 onclick={openCreateModal}
-                class="w-full md:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-blue-600/20"
             >
                 <Plus class="w-5 h-5" />
                 Material anlegen
-            </button>
+            </Button>
         {/if}
     </div>
 
@@ -317,14 +321,16 @@
                         {/if}
 
                         <div class="flex items-center gap-1">
-                            <button
+                            <Button
+                                variant="icon"
+                                tone="primary"
+                                iconOnly
+                                ariaLabel="Details"
                                 onclick={() =>
                                     goto(`/resources/${resource.id}`)}
-                                class="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                                aria-label="Details"
                             >
                                 <ArrowRight class="w-5 h-5" />
-                            </button>
+                            </Button>
 
                             {#if todoCounts[resource.id]}
                                 <div
@@ -335,58 +341,66 @@
                             {/if}
                             {#if isAdmin}
                                 <div class="relative z-20">
-                                    <button
-                                        onclick={(e) => {
+                                    <Button
+                                        variant="icon"
+                                        tone="neutral"
+                                        iconOnly
+                                        ariaLabel="Optionen"
+                                        onclick={(e: MouseEvent) => {
                                             e.stopPropagation();
                                             activeMenuId =
                                                 activeMenuId === resource.id
                                                     ? null
                                                     : resource.id;
                                         }}
-                                        class="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-                                        aria-label="Optionen"
                                     >
                                         <MoreVertical class="w-5 h-5" />
-                                    </button>
+                                    </Button>
 
                                     {#if activeMenuId === resource.id}
                                         <div
                                             class="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-800 rounded-lg shadow-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden transform origin-top-right transition-all"
                                         >
                                             {#if isAdmin}
-                                                <button
+                                                <Button
+                                                    variant="menu"
+                                                    tone="neutral"
+                                                    align="left"
                                                     onclick={() => {
                                                         openEditModal(resource);
                                                         activeMenuId = null;
                                                     }}
-                                                    class="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2"
                                                 >
                                                     <Pencil class="w-4 h-4" />
                                                     Bearbeiten
-                                                </button>
-                                                <button
+                                                </Button>
+                                                <Button
+                                                    variant="menu"
+                                                    tone="danger"
+                                                    align="left"
+                                                    dividerTop
                                                     onclick={() => {
                                                         handleDelete(resource);
                                                         activeMenuId = null;
                                                     }}
-                                                    class="w-full text-left px-4 py-3 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm text-red-600 dark:text-red-400 flex items-center gap-2 border-t border-zinc-100 dark:border-zinc-700"
                                                 >
                                                     <Trash2 class="w-4 h-4" />
                                                     Löschen
-                                                </button>
+                                                </Button>
                                             {/if}
-                                            <button
+                                            <Button
+                                                variant="menu"
+                                                tone="neutral"
+                                                align="left"
+                                                dividerTop={isAdmin}
                                                 onclick={() => {
                                                     viewingTodosFor = resource;
                                                     activeMenuId = null;
                                                 }}
-                                                class="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2 {isAdmin
-                                                    ? 'border-t border-zinc-100 dark:border-zinc-700'
-                                                    : ''}"
                                             >
                                                 <ListTodo class="w-4 h-4" />
                                                 Aufgaben
-                                            </button>
+                                            </Button>
                                         </div>
                                     {/if}
                                 </div>
@@ -408,9 +422,14 @@
                     <!-- Desktop Todo List -->
                     <div class="hidden lg:block mb-4 space-y-1">
                         {#each todos.filter((t) => t.attributes["resource-id"] == resource.id && t.attributes.status === 0) as todo}
-                            <button
-                                onclick={(e) => toggleTodoStatus(todo, e)}
-                                class="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400 group/todo w-full text-left hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors"
+                            <Button
+                                variant="ghost"
+                                tone="neutral"
+                                align="left"
+                                width="full"
+                                size="xs"
+                                onclick={(e: MouseEvent) =>
+                                    toggleTodoStatus(todo, e)}
                             >
                                 <div
                                     class="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0 group-hover/todo:bg-green-500 transition-colors"
@@ -419,7 +438,7 @@
                                     class="truncate group-hover/todo:line-through transition-all opacity-100 group-hover/todo:opacity-70"
                                     >{todo.attributes.title}</span
                                 >
-                            </button>
+                            </Button>
                         {/each}
                     </div>
 
@@ -471,7 +490,7 @@
                     label="Titel"
                     bind:value={formTitle}
                     required
-                    placeholder="e.g. Coach Boat 1"
+                    placeholder="z.B. Coachboat 1"
                 />
 
                 <div>
@@ -495,7 +514,7 @@
                     bind:value={formDescription}
                     multiline
                     rows={3}
-                    placeholder="Optional description..."
+                    placeholder="Optionale Beschreibung..."
                 />
 
                 <div class="flex items-center gap-6">
@@ -513,10 +532,12 @@
                 </div>
 
                 <div class="pt-2">
-                    <button
+                    <Button
+                        variant="solid"
+                        tone="primary"
+                        width="full"
                         type="submit"
                         disabled={formLoading}
-                        class="w-full flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-white py-2 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {#if formLoading}
                             <Loader2 class="w-4 h-4 animate-spin mr-2" />
@@ -526,7 +547,7 @@
                                 ? "Material aktualisieren"
                                 : "Neues Material erstellen"}
                         {/if}
-                    </button>
+                    </Button>
                 </div>
             </form>
         {/key}

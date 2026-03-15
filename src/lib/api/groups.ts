@@ -71,6 +71,11 @@ export const groupApi = {
             body: JSON.stringify({ data: { type: 'group-members', attributes } })
         }),
 
+    join: (id: string) =>
+        client(`/groups/${id}/join`, {
+            method: 'POST',
+        }),
+
     removeMember: (groupId: string, userId: string) =>
         client(`/groups/${groupId}/users/${userId}`, { method: 'DELETE' }),
 
@@ -108,9 +113,10 @@ export const groupApi = {
     deletePost: (groupId: string, postId: string) =>
         client(`/groups/${groupId}/posts/${postId}`, { method: 'DELETE' }),
 
-    streamUrl: (groupId: string, token?: string) => {
+    streamUrl: (groupId: string, token?: string, organizationId?: string | null) => {
         const base = API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE;
-        const url = `${base}/groups/${groupId}/stream`;
+        const scopedPrefix = organizationId ? `/organizations/${encodeURIComponent(organizationId)}` : '';
+        const url = `${base}${scopedPrefix}/groups/${groupId}/stream`;
         if (!token) return url;
         return `${url}?token=${encodeURIComponent(token)}`;
     }

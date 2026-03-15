@@ -1,6 +1,7 @@
 export const AUTH_USERS = {
     admin: {
         id: 'user-admin-uuid',
+        organizationId: 'org-test-1',
         firstName: 'System',
         name: 'Admin',
         email: 'admin@coachboat.com',
@@ -24,31 +25,61 @@ export const AUTH_USERS = {
             'resources:create',
             'resources:update',
             'resources:delete',
-            'roles:read'
+            'roles:read',
+            'forms:read',
+            'forms:create',
+            'forms:update:any',
+            'forms:delete:any',
+            'form_submissions:create',
+            'form_submissions:read:any',
+            'form_submissions:update:any',
+            'notifications:read',
+            'notifications:update:own',
+            'notifications:create:any',
         ]
     },
     moderator: {
         id: 'user-mod-uuid',
+        organizationId: 'org-test-1',
         firstName: 'Site',
         name: 'Moderator',
         email: 'moderator@coachboat.com',
         password: 'password',
         status: 3,
         role: { slug: 'moderator', name: 'Moderator' },
-        permissions: ['events:create', 'events:update:any', 'users:read']
+        permissions: [
+            'events:create',
+            'events:update:any',
+            'users:read',
+            'forms:read',
+            'form_submissions:read:any',
+            'notifications:read',
+            'notifications:update:own',
+        ]
     },
     user: {
         id: 'user-regular-uuid',
+        organizationId: 'org-test-1',
         firstName: 'John',
         name: 'Doe',
         email: 'user@coachboat.com',
         password: 'password',
         status: 2,
         role: { slug: 'user', name: 'Benutzer' },
-        permissions: ['events:read', 'events:create:own', 'users:read', 'groups:read']
+        permissions: [
+            'events:read',
+            'events:create:own',
+            'users:read',
+            'groups:read',
+            'forms:read',
+            'form_submissions:create',
+            'notifications:read',
+            'notifications:update:own',
+        ]
     },
     group_only: {
         id: 'user-group-uuid',
+        organizationId: 'org-test-1',
         firstName: 'Group',
         name: 'Member',
         email: 'group@coachboat.com',

@@ -5,7 +5,11 @@ import { createUser } from './factories';
 test.describe('Dashboard', () => {
     test.beforeEach(async ({ page }) => {
         // Setup default user and login
-        const user = createUser({ firstName: 'Anton', status: 2 }); // Status 2 for admin/mod capabilities
+        const user = createUser({
+            firstName: 'Anton',
+            status: 2,
+            permissions: ['events:read', 'resources:read', 'groups:read']
+        });
         // No extra handlers needed for basic dashboard
         await setupAndLogin(page, user);
     });

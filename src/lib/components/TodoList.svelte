@@ -15,6 +15,7 @@
     import ErrorAlert from "$lib/components/ui/ErrorAlert.svelte";
     import TextInput from "$lib/components/ui/TextInput.svelte";
     import Toggle from "$lib/components/ui/Toggle.svelte";
+    import Button from "$lib/components/ui/Button.svelte";
     import Modal from "$lib/components/Modal.svelte";
     import { toast } from "$lib/stores/toast";
 
@@ -26,7 +27,7 @@
     let adding = $state(false);
     let newTitle = $state("");
     let showCompleted = $state(false);
-    let resourceMap = $state<Record<number, string>>({});
+    let resourceMap = $state<Record<string, string>>({});
 
     let filteredTodos = $derived(
         showCompleted ? todos : todos.filter((t) => t.attributes.status === 0),
@@ -54,7 +55,7 @@
                     const json = await res.json();
                     const resources = json.data || json;
                     resourceMap = resources.reduce((acc: any, r: any) => {
-                        acc[r.id] = r.attributes.title;
+                        acc[String(r.id)] = r.attributes.title;
                         return acc;
                     }, {});
                 }
@@ -64,6 +65,28 @@
             error = await extractErrorMessage(e);
         } finally {
             loading = false;
+        }
+    }
+
+    async function ensureResourceNameLoaded(resourceIdToLoad?: string) {
+        if (!resourceIdToLoad) return;
+        if (resourceMap[resourceIdToLoad]) return;
+
+        try {
+            const res = await resourceApi.get(resourceIdToLoad);
+            if (!res.ok) return;
+
+            const json = await res.json();
+            const resource = json.data || json;
+
+            if (resource?.id && resource?.attributes?.title) {
+                resourceMap = {
+                    ...resourceMap,
+                    [String(resource.id)]: resource.attributes.title,
+                };
+            }
+        } catch (e) {
+            console.error("Failed to load resource details", e);
         }
     }
 
@@ -146,7 +169,7 @@
     }
 
     async function deleteTodo(id: string) {
-        if (!confirm("Delete this task?")) return;
+        if (!confirm("Diese Aufgabe wirklich löschen?")) return;
 
         try {
             const res = await todoApi.delete(id);
@@ -173,6 +196,9 @@
             if (res.ok) {
                 const json = await res.json();
                 selectedTodo = (json.data || json) as Todo;
+                await ensureResourceNameLoaded(
+                    selectedTodo.attributes["resource-id"],
+                );
             } else {
                 const msg = await extractErrorMessage(res);
                 toast.error(msg);
@@ -249,20 +275,24 @@
         <form onsubmit={createTodo} class="flex items-start gap-2">
             <TextInput
                 bind:value={newTitle}
-                placeholder="Add a new task..."
+                placeholder="Neue Aufgabe hinzufügen..."
                 class="flex-1"
             />
-            <button
+            <Button
+                variant="solid"
+                tone="primary"
+                size="xs"
                 type="submit"
+                iconOnly
+                ariaLabel="Aufgabe hinzufügen"
                 disabled={!newTitle.trim() || adding}
-                class="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 {#if adding}
                     <Loader2 class="w-4 h-4 animate-spin" />
                 {:else}
                     <Plus class="w-4 h-4" />
                 {/if}
-            </button>
+            </Button>
         </form>
     {/if}
 
@@ -290,16 +320,19 @@
                 <li
                     class="group flex items-center gap-3 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                 >
-                    <button
+                    <Button
+                        variant="ghost"
+                        tone="primary"
+                        iconOnly
+                        ariaLabel="Status wechseln"
                         onclick={() => toggleStatus(todo)}
-                        class="text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex-shrink-0"
                     >
                         {#if isComplete}
                             <CheckCircle2 class="w-5 h-5 text-green-500" />
                         {:else}
                             <Circle class="w-5 h-5" />
                         {/if}
-                    </button>
+                    </Button>
 
                     <div class="flex-1 min-w-0">
                         {#if editingId === todo.id}
@@ -327,32 +360,46 @@
                                 {todo.attributes.title}
                             </div>
                         {/if}
-                        {#if !resourceId && resourceMap[Number(todo.attributes["resource-id"])]}
+                        {#if !resourceId && resourceMap[String(todo.attributes["resource-id"])]}
                             <span
                                 class="text-xs px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 whitespace-nowrap"
                             >
                                 {resourceMap[
-                                    Number(todo.attributes["resource-id"])
+                                    String(todo.attributes["resource-id"])
                                 ]}
                             </span>
                         {/if}
                     </div>
 
-                    <button
-                        onclick={() => openTodoDetails(todo)}
-                        class="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-blue-600 transition-all p-1"
-                        title="Details"
-                    >
-                        <Eye class="w-4 h-4" />
-                    </button>
-                    {#if hasPermission($auth.user, "todos:delete:any") || ($auth.user?.id && String($auth.user.id) === String(todo.attributes["created-by"]))}
-                        <button
-                            onclick={() => deleteTodo(todo.id)}
-                            class="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-red-600 transition-all p-1"
-                            title="Delete task"
+                    <div class="opacity-0 group-hover:opacity-100 transition-all">
+                        <Button
+                            variant="icon"
+                            tone="primary"
+                            size="xs"
+                            iconOnly
+                            ariaLabel="Details"
+                            onclick={() => openTodoDetails(todo)}
+                            title="Details"
                         >
-                            <Trash2 class="w-4 h-4" />
-                        </button>
+                            <Eye class="w-4 h-4" />
+                        </Button>
+                    </div>
+                    {#if hasPermission($auth.user, "todos:delete:any") || ($auth.user?.id && String($auth.user.id) === String(todo.attributes["created-by"]))}
+                        <div
+                            class="opacity-0 group-hover:opacity-100 transition-all"
+                        >
+                            <Button
+                                variant="icon"
+                                tone="danger"
+                                size="xs"
+                                iconOnly
+                                ariaLabel="Aufgabe löschen"
+                                onclick={() => deleteTodo(todo.id)}
+                                title="Aufgabe löschen"
+                            >
+                                <Trash2 class="w-4 h-4" />
+                            </Button>
+                        </div>
                     {/if}
                 </li>
             {/each}
@@ -396,7 +443,7 @@
                         </span>
                         <p class="text-sm text-zinc-700 dark:text-zinc-300">
                             {resourceMap[
-                                Number(selectedTodo.attributes["resource-id"])
+                                String(selectedTodo.attributes["resource-id"])
                             ] ||
                                 selectedTodo.attributes["resource-id"] ||
                                 "-"}
@@ -404,12 +451,13 @@
                     </div>
 
                     <div class="flex justify-end">
-                        <button
+                        <Button
+                            variant="outline"
+                            tone="neutral"
                             onclick={() => (showDetailModal = false)}
-                            class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-md hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-300 dark:border-zinc-600 dark:hover:bg-zinc-600"
                         >
                             Schließen
-                        </button>
+                        </Button>
                     </div>
                 </div>
             {/if}

@@ -7,6 +7,7 @@
     import { toast } from "$lib/stores/toast";
     import TodoList from "$lib/components/TodoList.svelte";
     import ErrorAlert from "$lib/components/ui/ErrorAlert.svelte";
+    import Button from "$lib/components/ui/Button.svelte";
     import {
         ArrowLeft,
         Calendar,
@@ -117,12 +118,15 @@
 
 <div class="space-y-6">
     <div class="flex items-center gap-4">
-        <button
+        <Button
+            variant="icon"
+            tone="neutral"
+            iconOnly
+            ariaLabel="Zurück zur Materialübersicht"
             onclick={() => goto("/resources")}
-            class="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg text-zinc-500 transition-colors"
         >
             <ArrowLeft class="w-5 h-5" />
-        </button>
+        </Button>
         <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">
             {#if resource}
                 {resource.attributes.title}
@@ -262,10 +266,13 @@
                         </div>
 
                         {#if events.length < totalEvents}
-                            <button
+                            <Button
+                                variant="ghost"
+                                tone="primary"
+                                width="full"
                                 onclick={loadMoreEvents}
                                 disabled={loadingMore}
-                                class="w-full mt-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors flex items-center justify-center"
+                                style="margin-top: 1rem;"
                             >
                                 {#if loadingMore}
                                     <Loader2
@@ -276,7 +283,7 @@
                                     Mehr anzeigen ({totalEvents -
                                         events.length})
                                 {/if}
-                            </button>
+                            </Button>
                         {/if}
                     {/if}
                 </div>

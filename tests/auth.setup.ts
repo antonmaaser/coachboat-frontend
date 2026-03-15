@@ -13,14 +13,18 @@ for (const [roleKey, user] of Object.entries(AUTH_USERS)) {
             'AUTH POST /token': {
                 access_token: `mock-access-token-${roleKey}`,
                 refresh_token: `mock-refresh-token-${roleKey}`,
-                user_id: user.id
+                user_id: user.id,
+                organizationId: user.organizationId || null,
             },
             [`GET /users/${user.id}`]: {
                 data: {
                     id: user.id,
                     attributes: {
                         ...user,
-                        'first-name': user.firstName
+                        'first-name': user.firstName,
+                        organizations: user.organizationId
+                            ? [{ id: user.organizationId, name: 'Test Org', slug: 'test-org' }]
+                            : [],
                     }
                 }
             },

@@ -14,9 +14,10 @@
         Plus,
     } from "lucide-svelte";
     import * as Icons from "lucide-svelte";
-    // ResourceCategories removed
+    import Modal from "$lib/components/Modal.svelte";
     import TextInput from "$lib/components/ui/TextInput.svelte";
-    import { onMount } from "svelte";
+    import ErrorAlert from "$lib/components/ui/ErrorAlert.svelte";
+    import Button from "$lib/components/ui/Button.svelte";
 
     let oldPassword = $state("");
     let newPassword = $state("");
@@ -45,6 +46,31 @@
     let catFormIcon = $state("Ship");
     let catFormLoading = $state(false);
     let catFormError = $state("");
+    const catColorPresets = [
+        "#ef4444",
+        "#f97316",
+        "#f59e0b",
+        "#84cc16",
+        "#22c55e",
+        "#10b981",
+        "#14b8a6",
+        "#06b6d4",
+        "#0ea5e9",
+        "#3b82f6",
+        "#6366f1",
+        "#8b5cf6",
+        "#a855f7",
+        "#d946ef",
+        "#ec4899",
+        "#f43f5e",
+        "#64748b",
+        "#71717a",
+    ];
+    let catFormIconComponent = $derived.by(() =>
+        catFormIcon && (Icons as any)[catFormIcon]
+            ? ((Icons as any)[catFormIcon] as any)
+            : undefined,
+    );
 
     async function loadCategories() {
         if (!canManageCategories) {
@@ -216,13 +242,15 @@
                     >
                         Material-Kategorien
                     </h3>
-                    <button
+                    <Button
+                        variant="solid"
+                        tone="neutral"
+                        size="sm"
                         onclick={openCreateCategory}
-                        class="text-sm bg-zinc-100 dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 text-zinc-900 dark:text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
                     >
                         <Plus class="w-4 h-4" />
                         Neu
-                    </button>
+                    </Button>
                 </div>
 
                 {#if categoriesLoading}
@@ -264,19 +292,25 @@
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-1">
-                                    <button
+                                    <Button
+                                        variant="icon"
+                                        tone="neutral"
+                                        iconOnly
+                                        ariaLabel="Kategorie bearbeiten"
                                         onclick={() => openEditCategory(cat)}
-                                        class="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg"
                                     >
                                         <Pencil class="w-4 h-4" />
-                                    </button>
-                                    <button
+                                    </Button>
+                                    <Button
+                                        variant="icon"
+                                        tone="danger"
+                                        iconOnly
+                                        ariaLabel="Kategorie löschen"
                                         onclick={() =>
                                             handleDeleteCategory(cat)}
-                                        class="p-2 text-zinc-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
                                     >
                                         <Trash2 class="w-4 h-4" />
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
                         {/each}
@@ -284,148 +318,100 @@
                 {/if}
             </div>
 
-            {#if catShowDialog}
-                <div
-                    class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-                >
-                    <div
-                        class="bg-white dark:bg-zinc-800 rounded-xl shadow-xl max-w-md w-full p-6 relative"
-                    >
-                        <h2
-                            class="text-xl font-bold mb-4 text-zinc-900 dark:text-white"
-                        >
-                            {catEditingCategory
-                                ? "Kategorie bearbeiten"
-                                : "Neue Kategorie"}
-                        </h2>
+            <Modal
+                bind:show={catShowDialog}
+                title={catEditingCategory
+                    ? "Kategorie bearbeiten"
+                    : "Neue Kategorie"}
+            >
+                {#key catEditingCategory?.id || "new"}
+                    <form onsubmit={handleCategorySubmit} class="space-y-4">
+                        <ErrorAlert error={catFormError} />
 
-                        {#if catFormError}
-                            <div
-                                class="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-lg mb-4 text-sm"
+                        <TextInput
+                            id="cat-title"
+                            label="Titel"
+                            bind:value={catFormTitle}
+                            required
+                            placeholder="z.B. Motor, Trailer, Rettungsweste"
+                        />
+
+                        <div class="space-y-3">
+                            <p
+                                class="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
                             >
-                                {catFormError}
-                            </div>
-                        {/if}
+                                Farbe
+                            </p>
 
-                        <form onsubmit={handleCategorySubmit} class="space-y-4">
-                            <div>
-                                <label
-                                    for="cat-title"
-                                    class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1"
-                                >
-                                    Titel *
-                                </label>
-                                <input
-                                    id="cat-title"
-                                    type="text"
-                                    bind:value={catFormTitle}
-                                    required
-                                    class="w-full rounded-lg border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white"
+                            <div class="flex flex-wrap gap-2">
+                                {#each catColorPresets as preset}
+                                    <Button
+                                        variant="swatch"
+                                        type="button"
+                                        swatchColor={preset}
+                                        active={catFormColor === preset}
+                                        aria-label="Farbe {preset}"
+                                        onclick={() => (catFormColor = preset)}
+                                    ></Button>
+                                {/each}
+                            </div>
+
+                            <div class="flex items-end gap-2">
+                                <div
+                                    class="w-10 h-10 rounded-lg border border-zinc-200 dark:border-zinc-700"
+                                    style="background-color: {catFormColor}"
+                                ></div>
+
+                                <TextInput
+                                    id="cat-color"
+                                    label="Hex"
+                                    bind:value={catFormColor}
+                                    placeholder="#3B82F6"
+                                    maxlength="7"
+                                    style="text-transform: uppercase"
+                                    class="flex-1"
                                 />
                             </div>
+                        </div>
 
-                            <div>
-                                <label
-                                    for="cat-color"
-                                    class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1"
-                                >
-                                    Farbe
-                                </label>
-                                <div class="space-y-3">
-                                    <div class="flex flex-wrap gap-2">
-                                        {#each ["#ef4444", "#f97316", "#f59e0b", "#84cc16", "#22c55e", "#10b981", "#14b8a6", "#06b6d4", "#0ea5e9", "#3b82f6", "#6366f1", "#8b5cf6", "#a855f7", "#d946ef", "#ec4899", "#f43f5e", "#64748b", "#71717a"] as preset}
-                                            <button
-                                                type="button"
-                                                aria-label="Farbe {preset}"
-                                                class="w-6 h-6 rounded-full border-2 transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                                class:border-zinc-300={catFormColor !==
-                                                    preset}
-                                                class:dark:border-zinc-600={catFormColor !==
-                                                    preset}
-                                                class:border-zinc-900={catFormColor ===
-                                                    preset}
-                                                class:dark:border-white={catFormColor ===
-                                                    preset}
-                                                class:scale-110={catFormColor ===
-                                                    preset}
-                                                style="background-color: {preset}"
-                                                onclick={() =>
-                                                    (catFormColor = preset)}
-                                            ></button>
-                                        {/each}
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <div
-                                            class="w-10 h-10 rounded-lg border border-zinc-200 dark:border-zinc-700"
-                                            style="background-color: {catFormColor}"
-                                        ></div>
-                                        <input
-                                            type="text"
-                                            bind:value={catFormColor}
-                                            placeholder="#000000"
-                                            class="flex-1 rounded-lg border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white uppercase"
-                                            maxlength="7"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="space-y-1">
+                            <TextInput
+                                id="cat-icon"
+                                label="Symbol (Lucide-Name)"
+                                bind:value={catFormIcon}
+                                placeholder="z.B. Ship, Anchor, Truck"
+                                class="flex-1"
+                                icon={catFormIconComponent}
+                            />
+                            <p class="text-xs text-zinc-500">
+                                Gültige Lucide-Icon-Namen eingeben.
+                            </p>
+                        </div>
 
-                            <div>
-                                <label
-                                    for="cat-icon"
-                                    class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1"
-                                >
-                                    Icon (Lucide Name)
-                                </label>
-                                <div class="flex gap-2 items-center">
-                                    <input
-                                        id="cat-icon"
-                                        type="text"
-                                        bind:value={catFormIcon}
-                                        placeholder="z.B. Ship, Anchor, Truck"
-                                        class="flex-1 rounded-lg border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white"
-                                    />
-                                    <div
-                                        class="w-10 h-10 flex items-center justify-center bg-zinc-100 dark:bg-zinc-700 rounded-lg"
-                                    >
-                                        {#if catFormIcon && (Icons as any)[catFormIcon]}
-                                            {@const Icon = (Icons as any)[
-                                                catFormIcon
-                                            ]}
-                                            <Icon
-                                                class="w-6 h-6 text-zinc-600 dark:text-zinc-300"
-                                            />
-                                        {/if}
-                                    </div>
-                                </div>
-                                <p class="text-xs text-zinc-500 mt-1">
-                                    Gültige Lucide Icons namen eingeben.
-                                </p>
-                            </div>
-
-                            <div class="flex justify-end gap-3 mt-6">
-                                <button
-                                    type="button"
-                                    onclick={() => (catShowDialog = false)}
-                                    class="px-4 py-2 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg"
-                                >
-                                    Abbrechen
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={catFormLoading}
-                                    class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
-                                >
-                                    {#if catFormLoading}
-                                        <Loader2 class="w-4 h-4 animate-spin" />
-                                    {/if}
-                                    Speichern
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            {/if}
+                        <div class="flex justify-end gap-3 pt-2">
+                            <Button
+                                variant="ghost"
+                                tone="neutral"
+                                type="button"
+                                onclick={() => (catShowDialog = false)}
+                            >
+                                Abbrechen
+                            </Button>
+                            <Button
+                                variant="solid"
+                                tone="primary"
+                                type="submit"
+                                disabled={catFormLoading}
+                            >
+                                {#if catFormLoading}
+                                    <Loader2 class="w-4 h-4 animate-spin" />
+                                {/if}
+                                Speichern
+                            </Button>
+                        </div>
+                    </form>
+                {/key}
+            </Modal>
         </div>
     {/if}
 
@@ -476,10 +462,11 @@
             </div>
 
             <div class="pt-4">
-                <button
+                <Button
+                    variant="solid"
+                    tone="primary"
                     type="submit"
                     disabled={loading}
-                    class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
                     {#if loading}
                         <Loader2 class="w-4 h-4 animate-spin" />
@@ -487,7 +474,7 @@
                     {:else}
                         Passwort speichern
                     {/if}
-                </button>
+                </Button>
             </div>
         </form>
     </div>

@@ -6,6 +6,12 @@
     import { browser } from "$app/environment";
     import logo from "$lib/assets/waves.svg";
     import { client } from "$lib/api/client";
+    import { notificationsApi } from "$lib/api/notifications";
+    import { clickOutside } from "$lib/actions/clickOutside";
+    import Button from "$lib/components/ui/Button.svelte";
+    import ProfileAvatar from "$lib/components/ui/ProfileAvatar.svelte";
+    import { extractErrorMessage } from "$lib/utils/error";
+    import type { NotificationResource } from "$lib/api/types";
     import {
         LayoutDashboard,
         Calendar,
@@ -17,12 +23,18 @@
         Settings,
         DraftingCompass,
         X,
-        Shield,
+        Bell,
+        ClipboardList,
+        MessageSquare,
     } from "lucide-svelte";
 
     let { children } = $props();
     let mobileMenuOpen = $state(false);
     let lastHydrationKey = $state<string | null>(null);
+    let notificationsOpen = $state(false);
+    let notificationsLoading = $state(false);
+    let notificationsError = $state("");
+    let sidebarNotifications = $state<NotificationResource[]>([]);
 
     $effect(() => {
         if (!browser) return;
@@ -93,7 +105,120 @@
         if (href === "/") return path === "/";
         return path.startsWith(href);
     }
+
+    const canReadNotifications = $derived(
+        hasPermission($auth.user, "notifications:read", $auth.organizationId),
+    );
+    const canUpdateOwnNotifications = $derived(
+        hasPermission($auth.user, "notifications:update:own", $auth.organizationId),
+    );
+    const unreadNotificationsCount = $derived(
+        sidebarNotifications.filter((notification) => !notification.attributes.read)
+            .length,
+    );
+
+    function closeNotificationsPopover() {
+        notificationsOpen = false;
+    }
+
+    function closeSidebarAndNotifications() {
+        closeNotificationsPopover();
+        closeSidebar();
+    }
+
+    function handleLayoutKeydown(event: KeyboardEvent) {
+        if (event.key === "Escape") {
+            closeNotificationsPopover();
+        }
+    }
+
+    function formatNotificationDate(value?: string | null) {
+        if (!value) return "Unbekannt";
+        return new Date(value).toLocaleString("de-DE", {
+            dateStyle: "short",
+            timeStyle: "short",
+        });
+    }
+
+    async function loadSidebarNotifications() {
+        if (!canReadNotifications) {
+            notificationsError = "";
+            sidebarNotifications = [];
+            notificationsLoading = false;
+            return;
+        }
+
+        notificationsLoading = true;
+        notificationsError = "";
+
+        try {
+            const res = await notificationsApi.list(false);
+            if (!res.ok) {
+                notificationsError = await extractErrorMessage(res);
+                sidebarNotifications = [];
+                return;
+            }
+            const json = await res.json();
+            const data = (json.data || []) as NotificationResource[];
+            sidebarNotifications = data.sort((a, b) => {
+                const dateA = a.attributes["created-at"]
+                    ? new Date(a.attributes["created-at"] as string).getTime()
+                    : 0;
+                const dateB = b.attributes["created-at"]
+                    ? new Date(b.attributes["created-at"] as string).getTime()
+                    : 0;
+                return dateB - dateA;
+            });
+        } catch (err: any) {
+            notificationsError = await extractErrorMessage(err);
+            sidebarNotifications = [];
+        } finally {
+            notificationsLoading = false;
+        }
+    }
+
+    async function toggleNotificationsPopover() {
+        if (!canReadNotifications) return;
+        notificationsOpen = !notificationsOpen;
+        if (notificationsOpen) {
+            await loadSidebarNotifications();
+        }
+    }
+
+    async function markNotificationAsRead(notification: NotificationResource) {
+        if (!canUpdateOwnNotifications || notification.attributes.read) return;
+
+        try {
+            const res = await notificationsApi.markRead(notification.id, true);
+            if (!res.ok) {
+                notificationsError = await extractErrorMessage(res);
+                return;
+            }
+            await loadSidebarNotifications();
+        } catch (err: any) {
+            notificationsError = await extractErrorMessage(err);
+        }
+    }
+
+    $effect(() => {
+        page.url.pathname;
+        notificationsOpen = false;
+    });
+
+    $effect(() => {
+        if (!canReadNotifications) {
+            notificationsOpen = false;
+            notificationsError = "";
+            sidebarNotifications = [];
+            notificationsLoading = false;
+            return;
+        }
+        void loadSidebarNotifications();
+    });
+
 </script>
+
+<svelte:window onkeydown={handleLayoutKeydown} />
 
 <div
     class="min-h-screen bg-zinc-50 dark:bg-zinc-900 transition-colors duration-300"
@@ -108,12 +233,15 @@
                 >Coachboat-Planer</span
             >
         </div>
-        <button
+        <Button
+            variant="icon"
+            tone="neutral"
+            iconOnly
+            ariaLabel="Menü öffnen"
             onclick={toggleMobileMenu}
-            class="p-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 rounded-lg transition-colors"
         >
             <Menu class="w-6 h-6" />
-        </button>
+        </Button>
     </header>
 
     <!-- Sidebar Inlined -->
@@ -139,12 +267,17 @@
                 >
             </div>
             <!-- Mobile Close Button -->
-            <button
-                onclick={closeSidebar}
-                class="md:hidden text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
-            >
-                <X class="w-6 h-6" />
-            </button>
+            <div class="md:hidden">
+                <Button
+                    variant="ghost"
+                    tone="neutral"
+                    iconOnly
+                    ariaLabel="Seitenleiste schließen"
+                    onclick={closeSidebar}
+                >
+                    <X class="w-6 h-6" />
+                </Button>
+            </div>
         </div>
 
         <!-- Org Switcher -->
@@ -201,7 +334,7 @@
                     : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 hover:text-zinc-900 dark:hover:text-zinc-200'}"
             >
                 <LayoutDashboard class="w-5 h-5" />
-                Dashboard
+                Übersicht
             </a>
 
             {#if hasPermission($auth.user, "events:read")}
@@ -246,6 +379,34 @@
                 </a>
             {/if}
 
+            {#if hasPermission($auth.user, "forms:read")}
+                <a
+                    href="/forms"
+                    onclick={closeSidebar}
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium
+        {isActive('/forms', page.url.pathname)
+                        ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+                        : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 hover:text-zinc-900 dark:hover:text-zinc-200'}"
+                >
+                    <ClipboardList class="w-5 h-5" />
+                    Formulare
+                </a>
+            {/if}
+
+            {#if hasPermission($auth.user, "messages:read") || hasPermission($auth.user, "messages:create")}
+                <a
+                    href="/messages"
+                    onclick={closeSidebar}
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium
+        {isActive('/messages', page.url.pathname)
+                        ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+                        : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 hover:text-zinc-900 dark:hover:text-zinc-200'}"
+                >
+                    <MessageSquare class="w-5 h-5" />
+                    Nachrichten
+                </a>
+            {/if}
+
             {#if hasPermission($auth.user, "users:read")}
                 <div class="pt-4 pb-2">
                     <p
@@ -266,6 +427,7 @@
                     Benutzer
                 </a>
             {/if}
+
 
             <a
                 href="/settings"
@@ -296,18 +458,18 @@
 
         <div class="p-4 border-t border-zinc-100 dark:border-zinc-700/50">
             <div class="flex items-center gap-3 px-3 py-2">
-                <div
-                    class="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center text-xs font-bold text-zinc-600 dark:text-zinc-300"
-                >
-                    {$auth.user?.name?.charAt(0) || "U"}
-                </div>
+                <ProfileAvatar
+                    name={$auth.user?.name || ""}
+                    fallback="U"
+                    size="sm"
+                />
                 <div class="flex-1 min-w-0">
                     <p
                         class="text-sm font-medium text-zinc-900 dark:text-white truncate"
                     >
                         {$auth.user?.firstName
                             ? $auth.user.firstName + " "
-                            : ""}{$auth.user?.name || "User"}
+                            : ""}{$auth.user?.name || "Benutzer"}
                     </p>
                     <p
                         class="text-xs text-zinc-500 dark:text-zinc-400 truncate"
@@ -317,26 +479,184 @@
                 </div>
             </div>
 
-            <button
-                onclick={theme.toggle}
-                class="flex w-full items-center gap-3 px-3 py-2 mb-2 rounded-lg transition-colors text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 hover:text-zinc-900 dark:hover:text-zinc-200"
-            >
-                {#if $theme === "dark"}
-                    <Sun class="w-5 h-5" />
-                    <span>Light Modus</span>
-                {:else}
-                    <Moon class="w-5 h-5" />
-                    <span>Dark Modus</span>
-                {/if}
-            </button>
+            {#if canReadNotifications}
+                <div
+                    class="mb-2 relative"
+                    use:clickOutside={closeNotificationsPopover}
+                >
+                    <Button
+                        variant="menu"
+                        tone={notificationsOpen ? "primary" : "neutral"}
+                        size="xs"
+                        align="left"
+                        aria-haspopup="dialog"
+                        aria-expanded={notificationsOpen}
+                        onclick={toggleNotificationsPopover}
+                    >
+                        <Bell class="w-5 h-5" />
+                        <span>Benachrichtigungen</span>
+                        {#if unreadNotificationsCount > 0}
+                            <span
+                                class="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-blue-600 px-1.5 py-0.5 text-[11px] font-semibold leading-4 text-white"
+                            >
+                                {unreadNotificationsCount > 99
+                                    ? "99+"
+                                    : unreadNotificationsCount}
+                            </span>
+                        {/if}
+                    </Button>
 
-            <button
+                    {#if notificationsOpen}
+                        <div
+                            role="dialog"
+                            aria-label="Benachrichtigungen"
+                            class="absolute bottom-full left-0 z-50 mb-2 w-[min(24rem,calc(100vw-2.5rem))] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl dark:border-zinc-700 dark:bg-zinc-800"
+                        >
+                            <div
+                                class="flex items-center justify-between border-b border-zinc-200 p-3 dark:border-zinc-700"
+                            >
+                                <p
+                                    class="text-sm font-semibold text-zinc-900 dark:text-white"
+                                >
+                                    Benachrichtigungen
+                                </p>
+                                <Button
+                                    variant="ghost"
+                                    tone="neutral"
+                                    size="xs"
+                                    onclick={loadSidebarNotifications}
+                                >
+                                    Aktualisieren
+                                </Button>
+                            </div>
+
+                            {#if notificationsLoading}
+                                <p
+                                    class="p-3 text-sm text-zinc-600 dark:text-zinc-300"
+                                >
+                                    Lade Benachrichtigungen...
+                                </p>
+                            {:else if notificationsError}
+                                <p
+                                    class="p-3 text-sm text-red-600 dark:text-red-400"
+                                >
+                                    {notificationsError}
+                                </p>
+                            {:else if sidebarNotifications.length === 0}
+                                <p
+                                    class="p-3 text-sm text-zinc-600 dark:text-zinc-300"
+                                >
+                                    Keine ungelesenen Benachrichtigungen.
+                                </p>
+                            {:else}
+                                <div class="max-h-80 overflow-y-auto">
+                                    {#each sidebarNotifications.slice(0, 6) as notification}
+                                        <article
+                                            class="border-b border-zinc-100 p-3 dark:border-zinc-700/70"
+                                        >
+                                            <div class="flex items-start gap-2">
+                                                <div
+                                                    class="mt-1 h-2 w-2 rounded-full {notification.attributes.read
+                                                        ? 'bg-zinc-300 dark:bg-zinc-600'
+                                                        : 'bg-blue-500'}"
+                                                    aria-hidden="true"
+                                                ></div>
+                                                <div class="min-w-0 flex-1">
+                                                    <p
+                                                        class="truncate text-sm font-medium text-zinc-900 dark:text-white"
+                                                    >
+                                                        {notification.attributes.title}
+                                                    </p>
+                                                    <p
+                                                        class="mt-1 text-xs text-zinc-600 dark:text-zinc-300"
+                                                    >
+                                                        {notification.attributes.message}
+                                                    </p>
+                                                    <p
+                                                        class="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400"
+                                                    >
+                                                        {formatNotificationDate(
+                                                            notification.attributes[
+                                                                "created-at"
+                                                            ],
+                                                        )}
+                                                    </p>
+                                                    <div
+                                                        class="mt-2 flex flex-wrap items-center gap-3"
+                                                    >
+                                                        {#if notification.attributes.url}
+                                                            <a
+                                                                href={notification.attributes.url}
+                                                                class="text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
+                                                                onclick={closeSidebarAndNotifications}
+                                                            >
+                                                                Öffnen
+                                                            </a>
+                                                        {/if}
+                                                        {#if canUpdateOwnNotifications && !notification.attributes.read}
+                                                            <button
+                                                                type="button"
+                                                                class="text-xs font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white"
+                                                                onclick={() =>
+                                                                    markNotificationAsRead(
+                                                                        notification,
+                                                                    )}
+                                                            >
+                                                                Als gelesen
+                                                            </button>
+                                                        {/if}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </article>
+                                    {/each}
+                                </div>
+                            {/if}
+
+                            <div
+                                class="border-t border-zinc-200 p-2 dark:border-zinc-700"
+                            >
+                                <a
+                                    href="/notifications"
+                                    onclick={closeSidebarAndNotifications}
+                                    class="inline-flex w-full items-center justify-center rounded-lg px-3 py-2 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-blue-900/20"
+                                >
+                                    Alle Benachrichtigungen anzeigen
+                                </a>
+                            </div>
+                        </div>
+                    {/if}
+                </div>
+            {/if}
+
+            <div class="mb-2">
+                <Button
+                    variant="menu"
+                    tone="neutral"
+                    size="xs"
+                    align="left"
+                    onclick={theme.toggle}
+                >
+                    {#if $theme === "dark"}
+                        <Sun class="w-5 h-5" />
+                        <span>Light Modus</span>
+                    {:else}
+                        <Moon class="w-5 h-5" />
+                        <span>Dark Modus</span>
+                    {/if}
+                </Button>
+            </div>
+
+            <Button
+                variant="menu"
+                tone="danger"
+                size="xs"
+                align="left"
                 onclick={logout}
-                class="flex w-full items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
             >
                 <LogOut class="w-5 h-5" />
                 Abmelden
-            </button>
+            </Button>
         </div>
     </aside>
     <main class="md:ml-64 min-h-screen transition-all duration-300">

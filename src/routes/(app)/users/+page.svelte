@@ -6,6 +6,7 @@
     import TextInput from "$lib/components/ui/TextInput.svelte";
     import SearchableSelect from "$lib/components/ui/SearchableSelect.svelte";
     import Toggle from "$lib/components/ui/Toggle.svelte";
+    import Button from "$lib/components/ui/Button.svelte";
     import { slide } from "svelte/transition";
     import {
         Users,
@@ -177,7 +178,8 @@
             if (!res.ok) {
                 const json = await res.json();
                 throw new Error(
-                    json.errors?.[0]?.detail || "Failed to save user",
+                    json.errors?.[0]?.detail ||
+                        "Benutzer konnte nicht gespeichert werden",
                 );
             }
 
@@ -192,7 +194,7 @@
     async function handleResetPassword(user: any) {
         if (
             !confirm(
-                `Reset password for ${user.attributes["first-name"]} ${user.attributes.name}?`,
+                `Passwort für ${user.attributes["first-name"]} ${user.attributes.name} zurücksetzen?`,
             )
         )
             return;
@@ -204,18 +206,18 @@
                 newPassword = pwd;
                 showPasswordModal = true;
             } else {
-                alert("Failed to reset password");
+                alert("Passwort konnte nicht zurückgesetzt werden");
             }
         } catch (e) {
             console.error(e);
-            alert("Error resetting password");
+            alert("Fehler beim Zurücksetzen des Passworts");
         }
     }
 
     async function handleDeleteUser(user: any) {
         if (
             !confirm(
-                `Are you sure you want to delete ${user.attributes["first-name"]} ${user.attributes.name}? This action cannot be undone.`,
+                `Möchten Sie ${user.attributes["first-name"]} ${user.attributes.name} wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`,
             )
         )
             return;
@@ -225,11 +227,11 @@
             if (res.ok) {
                 loadUsers();
             } else {
-                alert("Failed to delete user");
+                alert("Benutzer konnte nicht gelöscht werden");
             }
         } catch (e) {
             console.error(e);
-            alert("Error deleting user");
+            alert("Fehler beim Löschen des Benutzers");
         }
     }
 
@@ -255,6 +257,37 @@
         } finally {
             loading = false;
         }
+    }
+
+    type PermissionGroup = {
+        resource: string;
+        actions: string[];
+    };
+
+    function groupPermissionsByResource(
+        permissionList: string[] = [],
+    ): PermissionGroup[] {
+        const groups = new Map<string, Set<string>>();
+
+        for (const permission of permissionList) {
+            if (typeof permission !== "string") continue;
+            const normalized = permission.trim();
+            if (!normalized) continue;
+
+            const [resourceRaw, ...actionParts] = normalized.split(":");
+            const resource = resourceRaw?.trim() || "unknown";
+            const action = actionParts.join(":").trim() || "*";
+
+            if (!groups.has(resource)) groups.set(resource, new Set<string>());
+            groups.get(resource)?.add(action);
+        }
+
+        return Array.from(groups.entries())
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([resource, actions]) => ({
+                resource,
+                actions: Array.from(actions).sort((a, b) => a.localeCompare(b)),
+            }));
     }
 
     function openCreateModal() {
@@ -350,13 +383,16 @@
         </h1>
 
         {#if hasPermission($auth.user, "users:create")}
-            <button
+            <Button
+                variant="solid"
+                tone="primary"
+                width="full-mobile"
+                elevated
                 onclick={openCreateModal}
-                class="w-full md:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-blue-600/20"
             >
                 <Plus class="w-5 h-5" />
                 Benutzer hinzufügen
-            </button>
+            </Button>
         {/if}
     </div>
 
@@ -370,9 +406,12 @@
                 >
                     <tr>
                         <th class="px-6 py-4">
-                            <button
+                            <Button
+                                variant="ghost"
+                                tone="neutral"
+                                size="sm"
+                                align="left"
                                 onclick={() => toggleSort("name")}
-                                class="flex items-center gap-1 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
                             >
                                 Name
                                 {#if sortField === "name"}
@@ -382,12 +421,15 @@
                                         <ArrowDown class="w-4 h-4" />
                                     {/if}
                                 {/if}
-                            </button>
+                            </Button>
                         </th>
                         <th class="px-6 py-4">
-                            <button
+                            <Button
+                                variant="ghost"
+                                tone="neutral"
+                                size="sm"
+                                align="left"
                                 onclick={() => toggleSort("email")}
-                                class="flex items-center gap-1 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
                             >
                                 E-Mail
                                 {#if sortField === "email"}
@@ -397,12 +439,15 @@
                                         <ArrowDown class="w-4 h-4" />
                                     {/if}
                                 {/if}
-                            </button>
+                            </Button>
                         </th>
                         <th class="px-6 py-4">
-                            <button
+                            <Button
+                                variant="ghost"
+                                tone="neutral"
+                                size="sm"
+                                align="left"
                                 onclick={() => toggleSort("status")}
-                                class="flex items-center gap-1 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
                             >
                                 Status
                                 {#if sortField === "status"}
@@ -412,10 +457,10 @@
                                         <ArrowDown class="w-4 h-4" />
                                     {/if}
                                 {/if}
-                            </button>
+                            </Button>
                         </th>
                         {#if hasPermission($auth.user, "users:update") || hasPermission($auth.user, "users:delete")}
-                            <th class="px-6 py-4 text-right">Actions</th>
+                            <th class="px-6 py-4 text-right">Aktionen</th>
                         {/if}
                     </tr>
                 </thead>
@@ -469,16 +514,19 @@
                                     <div
                                         class="relative inline-block text-left"
                                     >
-                                        <button
+                                        <Button
+                                            variant="icon"
+                                            tone="neutral"
+                                            iconOnly
+                                            ariaLabel="Benutzeroptionen"
                                             onclick={() =>
                                                 (activeMenu =
                                                     activeMenu === user.id
                                                         ? null
                                                         : user.id)}
-                                            class="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
                                         >
                                             <EllipsisVertical class="w-5 h-5" />
-                                        </button>
+                                        </Button>
 
                                         {#if activeMenu === user.id}
                                             <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -492,33 +540,40 @@
                                                 class="absolute right-0 z-20 mt-2 w-48 bg-white dark:bg-zinc-800 rounded-lg shadow-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden transform origin-top-right transition-all"
                                             >
                                                 {#if hasPermission($auth.user, "users:update")}
-                                                    <button
+                                                    <Button
+                                                        variant="menu"
+                                                        tone="neutral"
+                                                        align="left"
                                                         onclick={() => {
                                                             activeMenu = null;
                                                             openEditModal(user);
                                                         }}
-                                                        class="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2"
                                                     >
                                                         <Pencil
                                                             class="w-4 h-4"
                                                         />
                                                         Bearbeiten
-                                                    </button>
-                                                    <button
+                                                    </Button>
+                                                    <Button
+                                                        variant="menu"
+                                                        tone="neutral"
+                                                        align="left"
                                                         onclick={() => {
                                                             activeMenu = null;
                                                             handleResetPassword(
                                                                 user,
                                                             );
                                                         }}
-                                                        class="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2"
                                                     >
                                                         <KeyRound
                                                             class="w-4 h-4"
                                                         />
                                                         Passwort zurücksetzen
-                                                    </button>
-                                                    <button
+                                                    </Button>
+                                                    <Button
+                                                        variant="menu"
+                                                        tone="neutral"
+                                                        align="left"
                                                         onclick={() => {
                                                             activeMenu = null;
                                                             openEditModal(
@@ -526,29 +581,31 @@
                                                                 "permissions",
                                                             );
                                                         }}
-                                                        class="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2"
                                                     >
                                                         <Shield
                                                             class="w-4 h-4"
                                                         />
                                                         Berechtigungen
-                                                    </button>
+                                                    </Button>
                                                 {/if}
                                                 {#if hasPermission($auth.user, "users:delete") && user.attributes.status < 1}
-                                                    <button
+                                                    <Button
+                                                        variant="menu"
+                                                        tone="danger"
+                                                        align="left"
+                                                        dividerTop
                                                         onclick={() => {
                                                             activeMenu = null;
                                                             handleDeleteUser(
                                                                 user,
                                                             );
                                                         }}
-                                                        class="w-full text-left px-4 py-3 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm text-red-600 dark:text-red-400 flex items-center gap-2 border-t border-zinc-100 dark:border-zinc-700"
                                                     >
                                                         <Trash2
                                                             class="w-4 h-4"
                                                         />
                                                         Benutzer löschen
-                                                    </button>
+                                                    </Button>
                                                 {/if}
                                             </div>
                                         {/if}
@@ -572,26 +629,22 @@
                     <div
                         class="flex items-center gap-4 border-b border-zinc-200 dark:border-zinc-700"
                     >
-                        <button
+                        <Button
+                            variant="tab"
+                            active={formActiveTab === "details"}
                             type="button"
-                            class="px-4 py-2 text-sm font-medium border-b-2 transition-colors {formActiveTab ===
-                            'details'
-                                ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                                : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300'}"
                             onclick={() => (formActiveTab = "details")}
                         >
                             Details
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                            variant="tab"
+                            active={formActiveTab === "permissions"}
                             type="button"
-                            class="px-4 py-2 text-sm font-medium border-b-2 transition-colors {formActiveTab ===
-                            'permissions'
-                                ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                                : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300'}"
                             onclick={() => (formActiveTab = "permissions")}
                         >
                             Berechtigungen
-                        </button>
+                        </Button>
                     </div>
                 {/if}
 
@@ -609,7 +662,7 @@
                             <div>
                                 <TextInput
                                     id="firstName"
-                                    label="First Name"
+                                    label="Vorname"
                                     bind:value={formFirstName}
                                     required
                                 />
@@ -617,7 +670,7 @@
                             <div>
                                 <TextInput
                                     id="name"
-                                    label="Last Name"
+                                    label="Nachname"
                                     bind:value={formName}
                                     required
                                 />
@@ -628,7 +681,7 @@
                             <TextInput
                                 id="email"
                                 type="email"
-                                label="Email"
+                                label="E-Mail"
                                 bind:value={formEmail}
                                 required
                             />
@@ -639,12 +692,12 @@
                                 <TextInput
                                     id="password"
                                     type="password"
-                                    label="Initial Password"
+                                    label="Startpasswort"
                                     bind:value={formPassword}
-                                    placeholder="Leave blank for default"
+                                    placeholder="Leer lassen für Standardwert"
                                 />
                                 <p class="text-xs text-zinc-500 mt-1">
-                                    Default: ChangeMe123!
+                                    Standard: ChangeMe123!
                                 </p>
                             </div>
                         {/if}
@@ -670,25 +723,27 @@
                             <Toggle
                                 id="isActive"
                                 bind:checked={formIsActive}
-                                label="Account aktiviert"
+                                label="Konto aktiviert"
                             />
                         </div>
 
                         <div class="pt-2">
-                            <button
+                            <Button
+                                variant="solid"
+                                tone="primary"
+                                width="full"
                                 type="submit"
                                 disabled={formLoading}
-                                class="w-full flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-white py-2 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {#if formLoading}
                                     <Loader class="w-4 h-4 animate-spin mr-2" />
-                                    Saving...
+                                    Speichern...
                                 {:else}
                                     {editingUser
-                                        ? "Update User"
-                                        : "Create User"}
+                                        ? "Benutzer aktualisieren"
+                                        : "Benutzer erstellen"}
                                 {/if}
-                            </button>
+                            </Button>
                         </div>
                     </form>
                 {:else}
@@ -741,29 +796,40 @@
                                                     class="text-sm text-zinc-500 dark:text-zinc-400 block mb-2"
                                                     >Erlaubte Aktionen:</span
                                                 >
-                                                {#if permissions.global.permissions.length > 0}
-                                                    <div
-                                                        class="flex flex-wrap gap-2"
-                                                    >
-                                                        {#each permissions.global.permissions as perm}
-                                                            <span
-                                                                class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-zinc-100 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300"
+                                                <div class="space-y-3">
+                                                    {#each groupPermissionsByResource(permissions.global.permissions) as group}
+                                                        <div
+                                                            class="rounded-lg border border-zinc-200 dark:border-zinc-700 p-3"
+                                                        >
+                                                            <p
+                                                                class="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400"
                                                             >
-                                                                <Check
-                                                                    class="w-3 h-3"
-                                                                />
-                                                                {perm}
-                                                            </span>
-                                                        {/each}
-                                                    </div>
-                                                {:else}
-                                                    <p
-                                                        class="text-sm text-zinc-500 italic dark:text-zinc-500"
-                                                    >
-                                                        Keine spezifischen
-                                                        Rechte zugewiesen.
-                                                    </p>
-                                                {/if}
+                                                                {group.resource}
+                                                            </p>
+                                                            <div
+                                                                class="mt-2 flex flex-wrap gap-2"
+                                                            >
+                                                                {#each group.actions as action}
+                                                                    <span
+                                                                        class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-zinc-100 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300"
+                                                                    >
+                                                                        <Check
+                                                                            class="w-3 h-3"
+                                                                        />
+                                                                        {action}
+                                                                    </span>
+                                                                {/each}
+                                                            </div>
+                                                        </div>
+                                                    {:else}
+                                                        <p
+                                                            class="text-sm text-zinc-500 italic dark:text-zinc-500"
+                                                        >
+                                                            Keine spezifischen
+                                                            Rechte zugewiesen.
+                                                        </p>
+                                                    {/each}
+                                                </div>
                                             </div>
                                         {:else}
                                             <p
@@ -812,18 +878,40 @@
                                                             {ctx.roleName}
                                                         </span>
                                                     </div>
-                                                    <div
-                                                        class="flex flex-wrap gap-2"
-                                                    >
-                                                        {#each ctx.permissions as perm}
-                                                            <span
-                                                                class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-zinc-100 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300"
+                                                    <div class="space-y-3">
+                                                        {#each groupPermissionsByResource(ctx.permissions) as group}
+                                                            <div
+                                                                class="rounded-lg border border-zinc-200 dark:border-zinc-700 p-3"
                                                             >
-                                                                <Check
-                                                                    class="w-3 h-3"
-                                                                />
-                                                                {perm}
-                                                            </span>
+                                                                <p
+                                                                    class="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400"
+                                                                >
+                                                                    {group.resource}
+                                                                </p>
+                                                                <div
+                                                                    class="mt-2 flex flex-wrap gap-2"
+                                                                >
+                                                                    {#each group.actions as action}
+                                                                        <span
+                                                                            class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-zinc-100 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300"
+                                                                        >
+                                                                            <Check
+                                                                                class="w-3 h-3"
+                                                                            />
+                                                                            {action}
+                                                                        </span>
+                                                                    {/each}
+                                                                </div>
+                                                            </div>
+                                                        {:else}
+                                                            <p
+                                                                class="text-sm text-zinc-500 italic dark:text-zinc-500"
+                                                            >
+                                                                Keine
+                                                                spezifischen
+                                                                Rechte
+                                                                zugewiesen.
+                                                            </p>
                                                         {/each}
                                                     </div>
                                                 </div>
@@ -860,25 +948,31 @@
                 >
                     {newPassword}
                 </div>
-                <button
-                    onclick={copyToClipboard}
-                    class="absolute right-2 top-2 p-2 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors text-zinc-500"
-                    title="Copy to clipboard"
-                >
-                    {#if recentlyCopied}
-                        <Check class="w-5 h-5 text-green-500" />
-                    {:else}
-                        <Copy class="w-5 h-5" />
-                    {/if}
-                </button>
+                <div class="absolute right-2 top-2">
+                    <Button
+                        variant="icon"
+                        tone="neutral"
+                        iconOnly
+                        ariaLabel="In Zwischenablage kopieren"
+                        onclick={copyToClipboard}
+                        title="In Zwischenablage kopieren"
+                    >
+                        {#if recentlyCopied}
+                            <Check class="w-5 h-5 text-green-500" />
+                        {:else}
+                            <Copy class="w-5 h-5" />
+                        {/if}
+                    </Button>
+                </div>
             </div>
             <div class="flex justify-end pt-2">
-                <button
+                <Button
+                    variant="solid"
+                    tone="primary"
                     onclick={() => (showPasswordModal = false)}
-                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors"
                 >
                     Fertig
-                </button>
+                </Button>
             </div>
         </div>
     </Modal>

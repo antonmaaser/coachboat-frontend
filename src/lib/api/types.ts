@@ -1,3 +1,10 @@
+import type { FormDefinitionV1 } from '$lib/forms/schema';
+
+export type JsonObject = Record<string, unknown>;
+export type JsonObjectOrArray = JsonObject | JsonObject[];
+export type FormType = 'general' | 'membership' | 'waiver' | 'event_signup';
+export type FormVisibility = 'all' | 'admin_moderator';
+
 export interface JSONAPIResponse<T> {
     data: T;
     meta?: Record<string, any>;
@@ -113,6 +120,8 @@ export interface GroupResource {
         title: string;
         description?: string;
         visibility: 'all' | 'hidden';
+        'is-member'?: boolean;
+        'member-role'?: 'owner' | 'admin' | 'moderator' | 'member' | 'viewer' | null;
         'created-at'?: string;
         'archived-at'?: string | null;
         members?: Array<{
@@ -128,6 +137,7 @@ export interface GroupPostResource {
     attributes: {
         body: string;
         'is-pinned'?: boolean;
+        'created-by'?: string;
         'created-at'?: string;
         'updated-at'?: string;
         'object-id'?: string; // Add this as it is used in actions
@@ -155,5 +165,104 @@ export interface GroupActivityResource {
         'object-type': string;
         'object-id': string; // This is the ID of the underlying object (post, etc)
         payload: Record<string, any>;
+    };
+}
+
+export interface FormResource {
+    id: string;
+    type: 'form';
+    attributes: {
+        name: string;
+        description?: string;
+        fields?: FormDefinitionV1 | JsonObject[];
+        'form-type'?: FormType;
+        'requires-signature'?: boolean;
+        published?: boolean;
+        visibility?: FormVisibility;
+        'created-by'?: string;
+        'created-at'?: string;
+    };
+}
+
+export interface FormSubmissionResource {
+    id: string;
+    type: 'form-submission';
+    attributes: {
+        'form-id': string;
+        'submitted-by'?: string | null;
+        data: JsonObjectOrArray;
+        signature?: string | null;
+        status: 'submitted' | 'reviewed' | 'approved' | 'rejected';
+        'created-at'?: string;
+    };
+}
+
+export interface NotificationResource {
+    id: string;
+    type: 'notification';
+    attributes: {
+        'user-id'?: string;
+        type?: string;
+        title: string;
+        message: string;
+        url?: string | null;
+        'created-at'?: string;
+        'read-at'?: string | null;
+        read?: boolean;
+    };
+}
+
+export interface NotificationBroadcastResource {
+    id: string;
+    type: 'notification-broadcast';
+    attributes: {
+        broadcast: true;
+        recipients: number;
+        title: string;
+        message: string;
+        url?: string | null;
+    };
+}
+
+export interface MessageResource {
+    id: string;
+    type: 'message';
+    attributes: {
+        'organization-id'?: string;
+        'sender-id'?: string;
+        'recipient-id'?: string | null;
+        'group-id'?: string | null;
+        subject?: string | null;
+        body: string;
+        'created-at'?: string;
+        'read-at'?: string | null;
+        [key: string]: unknown;
+    };
+}
+
+export interface ConversationLastMessage {
+    id?: string;
+    'sender-id'?: string;
+    'recipient-id'?: string | null;
+    'group-id'?: string | null;
+    subject?: string | null;
+    body?: string;
+    'created-at'?: string;
+    [key: string]: unknown;
+}
+
+export interface ConversationResource {
+    id: string;
+    type: 'conversation';
+    attributes: {
+        kind: 'direct' | 'group';
+        'counterpart-user-id'?: string | null;
+        counterpart?: Record<string, unknown> | null;
+        'group-id'?: string | null;
+        group?: Record<string, unknown> | null;
+        'last-message'?: ConversationLastMessage | null;
+        'message-count'?: number;
+        'updated-at'?: string | null;
+        [key: string]: unknown;
     };
 }

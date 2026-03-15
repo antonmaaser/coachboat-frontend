@@ -45,11 +45,11 @@
             const res = await rolesApi.getAll();
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
-                throw new Error(
-                    err.errors?.[0]?.detail ||
-                        err.errors?.[0]?.title ||
-                        `Error: ${res.statusText}`,
-                );
+                    throw new Error(
+                        err.errors?.[0]?.detail ||
+                            err.errors?.[0]?.title ||
+                            `Fehler: ${res.statusText}`,
+                    );
             }
             const json: JSONAPIResponse<Role[]> = await res.json();
             roles = (json.data || []).map(normalizeRole);

@@ -103,7 +103,11 @@ test.describe('User Permissions View', () => {
         // We use a locator that likely targets the permission badge container
         await expect(modal.locator('.rounded-full').getByText('Benutzer', { exact: true })).toBeVisible();
 
-        await expect(modal.getByText('events:read')).toBeVisible();
+        // Permissions are grouped by resource and only list actions
+        await expect(modal.getByText('events', { exact: true })).toBeVisible();
+        await expect(modal.getByText('resources', { exact: true })).toBeVisible();
+        await expect(modal.getByText('read', { exact: true }).first()).toBeVisible();
+        await expect(modal.getByText('events:read', { exact: true })).toHaveCount(0);
     });
 
     test('Permissions tab displays context-specific roles', async ({ page }) => {
@@ -120,7 +124,9 @@ test.describe('User Permissions View', () => {
         await expect(modal.getByText('Gruppenberechtigungen')).toBeVisible();
         await expect(modal.getByText('Training Group A')).toBeVisible();
         await expect(modal.getByText('Trainer')).toBeVisible(); // Context role
-        await expect(modal.getByText('posts:create')).toBeVisible();
+        await expect(modal.getByText('posts', { exact: true })).toBeVisible();
+        await expect(modal.getByText('create', { exact: true })).toBeVisible();
+        await expect(modal.getByText('posts:create', { exact: true })).toHaveCount(0);
     });
 
     test('Can switch between Details and Permissions tabs', async ({ page }) => {
