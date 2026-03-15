@@ -30,6 +30,7 @@
         rows?: number;
         icon?: ComponentType;
         class?: string;
+        [key: string]: any;
     }>();
 
     // Derived classes for consistent styling

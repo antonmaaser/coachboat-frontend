@@ -8,11 +8,15 @@
         CheckCircle2,
         Circle,
         Loader2,
-        X,
+        Eye,
     } from "lucide-svelte";
     import { onMount, tick } from "svelte";
     import { extractErrorMessage } from "$lib/utils/error";
     import ErrorAlert from "$lib/components/ui/ErrorAlert.svelte";
+    import TextInput from "$lib/components/ui/TextInput.svelte";
+    import Toggle from "$lib/components/ui/Toggle.svelte";
+    import Button from "$lib/components/ui/Button.svelte";
+    import Modal from "$lib/components/Modal.svelte";
     import { toast } from "$lib/stores/toast";
 
     let { resourceId } = $props<{ resourceId?: string | number }>();
@@ -23,7 +27,7 @@
     let adding = $state(false);
     let newTitle = $state("");
     let showCompleted = $state(false);
-    let resourceMap = $state<Record<number, string>>({});
+    let resourceMap = $state<Record<string, string>>({});
 
     let filteredTodos = $derived(
         showCompleted ? todos : todos.filter((t) => t.attributes.status === 0),
@@ -32,6 +36,9 @@
     // For editing a todo
     let editingId = $state<string | null>(null);
     let editTitle = $state("");
+    let showDetailModal = $state(false);
+    let detailLoading = $state(false);
+    let selectedTodo = $state<Todo | null>(null);
 
     async function loadTodos() {
         loading = true;
@@ -48,7 +55,7 @@
                     const json = await res.json();
                     const resources = json.data || json;
                     resourceMap = resources.reduce((acc: any, r: any) => {
-                        acc[r.id] = r.attributes.title;
+                        acc[String(r.id)] = r.attributes.title;
                         return acc;
                     }, {});
                 }
@@ -58,6 +65,28 @@
             error = await extractErrorMessage(e);
         } finally {
             loading = false;
+        }
+    }
+
+    async function ensureResourceNameLoaded(resourceIdToLoad?: string) {
+        if (!resourceIdToLoad) return;
+        if (resourceMap[resourceIdToLoad]) return;
+
+        try {
+            const res = await resourceApi.get(resourceIdToLoad);
+            if (!res.ok) return;
+
+            const json = await res.json();
+            const resource = json.data || json;
+
+            if (resource?.id && resource?.attributes?.title) {
+                resourceMap = {
+                    ...resourceMap,
+                    [String(resource.id)]: resource.attributes.title,
+                };
+            }
+        } catch (e) {
+            console.error("Failed to load resource details", e);
         }
     }
 
@@ -140,7 +169,7 @@
     }
 
     async function deleteTodo(id: string) {
-        if (!confirm("Delete this task?")) return;
+        if (!confirm("Diese Aufgabe wirklich löschen?")) return;
 
         try {
             const res = await todoApi.delete(id);
@@ -154,6 +183,32 @@
             console.error("Failed to delete todo", e);
             const msg = await extractErrorMessage(e);
             toast.error(msg);
+        }
+    }
+
+    async function openTodoDetails(todo: Todo) {
+        selectedTodo = todo;
+        showDetailModal = true;
+        detailLoading = true;
+
+        try {
+            const res = await todoApi.get(todo.id);
+            if (res.ok) {
+                const json = await res.json();
+                selectedTodo = (json.data || json) as Todo;
+                await ensureResourceNameLoaded(
+                    selectedTodo.attributes["resource-id"],
+                );
+            } else {
+                const msg = await extractErrorMessage(res);
+                toast.error(msg);
+            }
+        } catch (e) {
+            console.error("Failed to load todo details", e);
+            const msg = await extractErrorMessage(e);
+            toast.error(msg);
+        } finally {
+            detailLoading = false;
         }
     }
 
@@ -203,6 +258,10 @@
         if (e.key === "Escape") cancelEdit();
     }
 
+    function todoStatusLabel(status?: number) {
+        return status === 1 ? "Erledigt" : "Offen";
+    }
+
     onMount(() => {
         loadTodos();
     });
@@ -213,53 +272,32 @@
         <ErrorAlert {error} />
     {/if}
     {#if resourceId}
-        <form onsubmit={createTodo} class="flex gap-2">
-            <input
-                type="text"
+        <form onsubmit={createTodo} class="flex items-start gap-2">
+            <TextInput
                 bind:value={newTitle}
-                placeholder="Add a new task..."
-                class="flex-1 rounded-lg border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Neue Aufgabe hinzufügen..."
+                class="flex-1"
             />
-            <button
+            <Button
+                variant="solid"
+                tone="primary"
+                size="xs"
                 type="submit"
+                iconOnly
+                ariaLabel="Aufgabe hinzufügen"
                 disabled={!newTitle.trim() || adding}
-                class="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 {#if adding}
                     <Loader2 class="w-4 h-4 animate-spin" />
                 {:else}
                     <Plus class="w-4 h-4" />
                 {/if}
-            </button>
+            </Button>
         </form>
     {/if}
 
     <div class="flex items-center justify-between">
-        <button
-            type="button"
-            role="switch"
-            aria-checked={showCompleted}
-            onclick={() => (showCompleted = !showCompleted)}
-            class="flex items-center gap-2 text-xs text-zinc-500 cursor-pointer focus:outline-none group"
-        >
-            <div
-                class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 {showCompleted
-                    ? 'bg-blue-600'
-                    : 'bg-zinc-200 dark:bg-zinc-700'}"
-            >
-                <span class="sr-only">Alle anzeigen</span>
-                <span
-                    aria-hidden="true"
-                    class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {showCompleted
-                        ? 'translate-x-4'
-                        : 'translate-x-0'}"
-                ></span>
-            </div>
-            <span
-                class="group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors"
-                >Zeige Alle</span
-            >
-        </button>
+        <Toggle bind:checked={showCompleted} label="Zeige Alle" />
         <span class="text-xs text-zinc-400">
             {todos.filter((t) => t.attributes.status === 0).length} offen
         </span>
@@ -282,27 +320,30 @@
                 <li
                     class="group flex items-center gap-3 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                 >
-                    <button
+                    <Button
+                        variant="ghost"
+                        tone="primary"
+                        iconOnly
+                        ariaLabel="Status wechseln"
                         onclick={() => toggleStatus(todo)}
-                        class="text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex-shrink-0"
                     >
                         {#if isComplete}
                             <CheckCircle2 class="w-5 h-5 text-green-500" />
                         {:else}
                             <Circle class="w-5 h-5" />
                         {/if}
-                    </button>
+                    </Button>
 
                     <div class="flex-1 min-w-0">
                         {#if editingId === todo.id}
-                            <div class="flex items-center gap-2">
-                                <input
+                            <div class="flex items-center gap-2 flex-1">
+                                <TextInput
                                     id="edit-todo-{todo.id}"
-                                    type="text"
                                     bind:value={editTitle}
-                                    onkeydown={(e) => handleKeydown(e, todo.id)}
+                                    onkeydown={(e: KeyboardEvent) =>
+                                        handleKeydown(e, todo.id)}
                                     onblur={() => saveEdit(todo.id)}
-                                    class="w-full bg-white dark:bg-zinc-900 border border-blue-500 rounded px-2 py-1 text-sm focus:outline-none"
+                                    class="w-full"
                                 />
                             </div>
                         {:else}
@@ -319,28 +360,107 @@
                                 {todo.attributes.title}
                             </div>
                         {/if}
-                        {#if !resourceId && resourceMap[Number(todo.attributes["resource-id"])]}
+                        {#if !resourceId && resourceMap[String(todo.attributes["resource-id"])]}
                             <span
                                 class="text-xs px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 whitespace-nowrap"
                             >
                                 {resourceMap[
-                                    Number(todo.attributes["resource-id"])
+                                    String(todo.attributes["resource-id"])
                                 ]}
                             </span>
                         {/if}
                     </div>
 
-                    {#if hasPermission($auth.user, "todos:delete:any") || ($auth.user?.id && String($auth.user.id) === String(todo.attributes["created-by"]))}
-                        <button
-                            onclick={() => deleteTodo(todo.id)}
-                            class="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-red-600 transition-all p-1"
-                            title="Delete task"
+                    <div class="opacity-0 group-hover:opacity-100 transition-all">
+                        <Button
+                            variant="icon"
+                            tone="primary"
+                            size="xs"
+                            iconOnly
+                            ariaLabel="Details"
+                            onclick={() => openTodoDetails(todo)}
+                            title="Details"
                         >
-                            <Trash2 class="w-4 h-4" />
-                        </button>
+                            <Eye class="w-4 h-4" />
+                        </Button>
+                    </div>
+                    {#if hasPermission($auth.user, "todos:delete:any") || ($auth.user?.id && String($auth.user.id) === String(todo.attributes["created-by"]))}
+                        <div
+                            class="opacity-0 group-hover:opacity-100 transition-all"
+                        >
+                            <Button
+                                variant="icon"
+                                tone="danger"
+                                size="xs"
+                                iconOnly
+                                ariaLabel="Aufgabe löschen"
+                                onclick={() => deleteTodo(todo.id)}
+                                title="Aufgabe löschen"
+                            >
+                                <Trash2 class="w-4 h-4" />
+                            </Button>
+                        </div>
                     {/if}
                 </li>
             {/each}
         </ul>
     {/if}
+
+    <Modal title="Aufgabendetails" bind:show={showDetailModal}>
+        {#if selectedTodo}
+            {#if detailLoading}
+                <div class="flex justify-center p-8">
+                    <Loader2 class="w-6 h-6 animate-spin text-zinc-400" />
+                </div>
+            {:else}
+                <div class="space-y-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-zinc-900 dark:text-white">
+                            {selectedTodo.attributes.title}
+                        </h3>
+                        <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                            Status: {todoStatusLabel(selectedTodo.attributes.status)}
+                        </p>
+                    </div>
+
+                    <div class="bg-zinc-50 dark:bg-zinc-800/60 p-3 rounded-lg">
+                        <span
+                            class="block text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase mb-1"
+                        >
+                            Beschreibung
+                        </span>
+                        <p class="text-sm text-zinc-700 dark:text-zinc-300">
+                            {selectedTodo.attributes.description ||
+                                "Keine Beschreibung vorhanden."}
+                        </p>
+                    </div>
+
+                    <div class="bg-zinc-50 dark:bg-zinc-800/60 p-3 rounded-lg">
+                        <span
+                            class="block text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase mb-1"
+                        >
+                            Ressource
+                        </span>
+                        <p class="text-sm text-zinc-700 dark:text-zinc-300">
+                            {resourceMap[
+                                String(selectedTodo.attributes["resource-id"])
+                            ] ||
+                                selectedTodo.attributes["resource-id"] ||
+                                "-"}
+                        </p>
+                    </div>
+
+                    <div class="flex justify-end">
+                        <Button
+                            variant="outline"
+                            tone="neutral"
+                            onclick={() => (showDetailModal = false)}
+                        >
+                            Schließen
+                        </Button>
+                    </div>
+                </div>
+            {/if}
+        {/if}
+    </Modal>
 </div>

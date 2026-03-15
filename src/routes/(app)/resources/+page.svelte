@@ -1,11 +1,15 @@
 <script lang="ts">
-    import { resourceApi } from "$lib/api/resources";
+    import { resourceApi, type ResourceAttributes } from "$lib/api/resources";
     import { client } from "$lib/api/client";
     import { todoApi } from "$lib/api/todos";
     import { auth, hasPermission } from "$lib/stores/auth";
     import { toast } from "$lib/stores/toast";
     import Modal from "$lib/components/Modal.svelte";
-    import ResourceForm from "$lib/components/ResourceForm.svelte";
+    // ResourceForm removed
+    import ErrorAlert from "$lib/components/ui/ErrorAlert.svelte";
+    import TextInput from "$lib/components/ui/TextInput.svelte";
+    import SearchableSelect from "$lib/components/ui/SearchableSelect.svelte";
+    import Button from "$lib/components/ui/Button.svelte";
     import TodoList from "$lib/components/TodoList.svelte";
 
     import {
@@ -18,13 +22,15 @@
         Trash2,
         ListTodo,
         AlertTriangle,
+        ArrowRight,
+        Loader2,
     } from "lucide-svelte";
+    import { goto } from "$app/navigation";
     import * as Icons from "lucide-svelte";
     import { onMount } from "svelte";
 
     import { resourceCategoryApi } from "$lib/api/resource-categories";
     import { extractErrorMessage } from "$lib/utils/error";
-    import ErrorAlert from "$lib/components/ui/ErrorAlert.svelte";
 
     let resources = $state<any[]>([]);
     let todos = $state<any[]>([]);
@@ -37,8 +43,64 @@
     let viewingTodosFor = $state<any>(undefined);
     let isLoading = $state(true);
 
+    // Form State
+    let formTitle = $state("");
+    let formDescription = $state("");
+    let formIsReady = $state(false);
+    let formCategoryId = $state<string>("");
+    let formLoading = $state(false);
+    let formError = $state("");
+
+    $effect(() => {
+        if (showModal) {
+            formTitle = editingResource?.attributes.title || "";
+            formDescription = editingResource?.attributes.description || "";
+            formIsReady = editingResource?.attributes["is-bookable"] || false;
+            formCategoryId = editingResource?.attributes["category-id"] || "";
+            formError = "";
+            formLoading = false;
+        }
+    });
+
+    async function handleFormSubmit(e: Event) {
+        e.preventDefault();
+        formLoading = true;
+        formError = "";
+
+        try {
+            const attributes: Partial<ResourceAttributes> = {
+                title: formTitle,
+                description: formDescription,
+                "is-bookable": formIsReady,
+                "category-id": formCategoryId || null,
+            };
+
+            let res;
+            if (editingResource?.id) {
+                res = await resourceApi.update(editingResource.id, attributes);
+            } else {
+                res = await resourceApi.create(
+                    attributes as ResourceAttributes,
+                );
+            }
+
+            if (!res.ok) {
+                const msg = await extractErrorMessage(res);
+                formError = msg;
+                return;
+            }
+
+            handleSuccess();
+        } catch (e: any) {
+            console.error(e);
+            formError = await extractErrorMessage(e);
+        } finally {
+            formLoading = false;
+        }
+    }
+
     async function handleDelete(resource: any) {
-        if (!confirm("Are you sure you want to delete this resource?")) return;
+        if (!confirm("Möchten Sie dieses Material wirklich löschen?")) return;
         try {
             const res = await resourceApi.delete(resource.id);
             if (res.ok) {
@@ -177,13 +239,16 @@
         </h1>
 
         {#if isAdmin}
-            <button
+            <Button
+                variant="solid"
+                tone="primary"
+                width="full-mobile"
+                elevated
                 onclick={openCreateModal}
-                class="w-full md:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-blue-600/20"
             >
                 <Plus class="w-5 h-5" />
                 Material anlegen
-            </button>
+            </Button>
         {/if}
     </div>
 
@@ -224,6 +289,8 @@
                 {@const category = categories.find(
                     (c) => c.id === attrs["category-id"],
                 )}
+                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div
                     class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 relative group transition-all hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-600"
                 >
@@ -253,69 +320,92 @@
                             </div>
                         {/if}
 
-                        {#if todoCounts[resource.id]}
-                            <div
-                                class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full shadow-md z-10 border-2 border-white dark:border-zinc-800"
+                        <div class="flex items-center gap-1">
+                            <Button
+                                variant="icon"
+                                tone="primary"
+                                iconOnly
+                                ariaLabel="Details"
+                                onclick={() =>
+                                    goto(`/resources/${resource.id}`)}
                             >
-                                {todoCounts[resource.id]}
-                            </div>
-                        {/if}
-                        {#if $auth.user?.status && $auth.user.status >= 2}
-                            <div class="relative z-20">
-                                <button
-                                    onclick={() =>
-                                        (activeMenuId =
-                                            activeMenuId === resource.id
-                                                ? null
-                                                : resource.id)}
-                                    class="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-                                    aria-label="Optionen"
-                                >
-                                    <MoreVertical class="w-5 h-5" />
-                                </button>
+                                <ArrowRight class="w-5 h-5" />
+                            </Button>
 
-                                {#if activeMenuId === resource.id}
-                                    <div
-                                        class="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-800 rounded-lg shadow-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden transform origin-top-right transition-all"
+                            {#if todoCounts[resource.id]}
+                                <div
+                                    class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full shadow-md z-10 border-2 border-white dark:border-zinc-800"
+                                >
+                                    {todoCounts[resource.id]}
+                                </div>
+                            {/if}
+                            {#if isAdmin}
+                                <div class="relative z-20">
+                                    <Button
+                                        variant="icon"
+                                        tone="neutral"
+                                        iconOnly
+                                        ariaLabel="Optionen"
+                                        onclick={(e: MouseEvent) => {
+                                            e.stopPropagation();
+                                            activeMenuId =
+                                                activeMenuId === resource.id
+                                                    ? null
+                                                    : resource.id;
+                                        }}
                                     >
-                                        {#if isAdmin}
-                                            <button
-                                                onclick={() => {
-                                                    openEditModal(resource);
-                                                    activeMenuId = null;
-                                                }}
-                                                class="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2"
-                                            >
-                                                <Pencil class="w-4 h-4" />
-                                                Bearbeiten
-                                            </button>
-                                            <button
-                                                onclick={() => {
-                                                    handleDelete(resource);
-                                                    activeMenuId = null;
-                                                }}
-                                                class="w-full text-left px-4 py-3 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm text-red-600 dark:text-red-400 flex items-center gap-2 border-t border-zinc-100 dark:border-zinc-700"
-                                            >
-                                                <Trash2 class="w-4 h-4" />
-                                                Löschen
-                                            </button>
-                                        {/if}
-                                        <button
-                                            onclick={() => {
-                                                viewingTodosFor = resource;
-                                                activeMenuId = null;
-                                            }}
-                                            class="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2 {isAdmin
-                                                ? 'border-t border-zinc-100 dark:border-zinc-700'
-                                                : ''}"
+                                        <MoreVertical class="w-5 h-5" />
+                                    </Button>
+
+                                    {#if activeMenuId === resource.id}
+                                        <div
+                                            class="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-800 rounded-lg shadow-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden transform origin-top-right transition-all"
                                         >
-                                            <ListTodo class="w-4 h-4" />
-                                            Aufgaben
-                                        </button>
-                                    </div>
-                                {/if}
-                            </div>
-                        {/if}
+                                            {#if isAdmin}
+                                                <Button
+                                                    variant="menu"
+                                                    tone="neutral"
+                                                    align="left"
+                                                    onclick={() => {
+                                                        openEditModal(resource);
+                                                        activeMenuId = null;
+                                                    }}
+                                                >
+                                                    <Pencil class="w-4 h-4" />
+                                                    Bearbeiten
+                                                </Button>
+                                                <Button
+                                                    variant="menu"
+                                                    tone="danger"
+                                                    align="left"
+                                                    dividerTop
+                                                    onclick={() => {
+                                                        handleDelete(resource);
+                                                        activeMenuId = null;
+                                                    }}
+                                                >
+                                                    <Trash2 class="w-4 h-4" />
+                                                    Löschen
+                                                </Button>
+                                            {/if}
+                                            <Button
+                                                variant="menu"
+                                                tone="neutral"
+                                                align="left"
+                                                dividerTop={isAdmin}
+                                                onclick={() => {
+                                                    viewingTodosFor = resource;
+                                                    activeMenuId = null;
+                                                }}
+                                            >
+                                                <ListTodo class="w-4 h-4" />
+                                                Aufgaben
+                                            </Button>
+                                        </div>
+                                    {/if}
+                                </div>
+                            {/if}
+                        </div>
                     </div>
 
                     <h3
@@ -332,9 +422,14 @@
                     <!-- Desktop Todo List -->
                     <div class="hidden lg:block mb-4 space-y-1">
                         {#each todos.filter((t) => t.attributes["resource-id"] == resource.id && t.attributes.status === 0) as todo}
-                            <button
-                                onclick={(e) => toggleTodoStatus(todo, e)}
-                                class="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400 group/todo w-full text-left hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors"
+                            <Button
+                                variant="ghost"
+                                tone="neutral"
+                                align="left"
+                                width="full"
+                                size="xs"
+                                onclick={(e: MouseEvent) =>
+                                    toggleTodoStatus(todo, e)}
                             >
                                 <div
                                     class="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0 group-hover/todo:bg-green-500 transition-colors"
@@ -343,14 +438,14 @@
                                     class="truncate group-hover/todo:line-through transition-all opacity-100 group-hover/todo:opacity-70"
                                     >{todo.attributes.title}</span
                                 >
-                            </button>
+                            </Button>
                         {/each}
                     </div>
 
                     <div
                         class="flex items-center gap-2 text-sm pt-4 border-t border-zinc-100 dark:border-zinc-700/50"
                     >
-                        {#if attrs["is-ready"]}
+                        {#if attrs["is-bookable"]}
                             {#if todoCounts[resource.id] && todoCounts[resource.id] > 0}
                                 <AlertTriangle
                                     class="w-4 h-4 text-orange-500"
@@ -385,10 +480,76 @@
         title={editingResource ? "Material bearbeiten" : "Neues Material"}
     >
         {#key editingResource?.id || "new"}
-            <ResourceForm
-                resource={editingResource}
-                onSuccess={handleSuccess}
-            />
+            <form onsubmit={handleFormSubmit} class="space-y-4">
+                {#if formError}
+                    <ErrorAlert error={formError} />
+                {/if}
+
+                <TextInput
+                    id="title"
+                    label="Titel"
+                    bind:value={formTitle}
+                    required
+                    placeholder="z.B. Coachboat 1"
+                />
+
+                <div>
+                    <SearchableSelect
+                        label="Kategorie"
+                        bind:value={formCategoryId}
+                        options={[
+                            { value: "", label: "Keine Kategorie" },
+                            ...categories.map((cat) => ({
+                                value: cat.id,
+                                label: cat.attributes.title,
+                            })),
+                        ]}
+                        placeholder="Wähle eine Kategorie..."
+                    />
+                </div>
+
+                <TextInput
+                    id="description"
+                    label="Beschreibung"
+                    bind:value={formDescription}
+                    multiline
+                    rows={3}
+                    placeholder="Optionale Beschreibung..."
+                />
+
+                <div class="flex items-center gap-6">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            bind:checked={formIsReady}
+                            class="rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span
+                            class="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+                            >Material verfügbar</span
+                        >
+                    </label>
+                </div>
+
+                <div class="pt-2">
+                    <Button
+                        variant="solid"
+                        tone="primary"
+                        width="full"
+                        type="submit"
+                        disabled={formLoading}
+                    >
+                        {#if formLoading}
+                            <Loader2 class="w-4 h-4 animate-spin mr-2" />
+                            Speichern...
+                        {:else}
+                            {editingResource
+                                ? "Material aktualisieren"
+                                : "Neues Material erstellen"}
+                        {/if}
+                    </Button>
+                </div>
+            </form>
         {/key}
     </Modal>
 

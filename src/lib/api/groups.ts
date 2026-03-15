@@ -1,83 +1,64 @@
+import { API_BASE } from '../config';
 import { client } from './client';
+import type {
+    GroupResource,
+    GroupPostResource,
+    GroupActivityResource,
+    GenericListDocument,
+    UserResource
+} from './types';
 
 export interface GroupAttributes {
     title: string;
-    description?: string;
-    visibility?: 'all' | 'admin' | 'none';
-    'created-at'?: string;
-    members?: { id: string; role: string | null }[];
+    description: string;
+    visibility: 'all' | 'hidden';
 }
 
-export interface Group {
-    id: string;
-    type: 'group';
-    attributes: GroupAttributes;
-}
+export type GroupMemberRole = 'owner' | 'admin' | 'moderator' | 'member' | 'viewer';
 
 export interface GroupMemberAttributes {
     userId: string;
-    role: 'moderator' | 'listener' | null;
+    role: GroupMemberRole;
 }
 
-export interface GroupPostAttributes {
-    body: string;
-    'is-pinned'?: boolean;
-    'created-at'?: string;
-    'updated-at'?: string;
-}
-
-export interface GroupPost {
-    id: string;
-    type: 'group-post';
-    attributes: GroupPostAttributes;
-    relationships?: {
-        author: {
-            data: { type: 'user'; id: string };
-            meta?: { name: string; 'first-name': string };
-        };
-        group: {
-            data: { type: 'group'; id: string };
-        };
+export interface GroupMemberResource extends UserResource {
+    attributes: UserResource['attributes'] & {
+        role?: GroupMemberRole;
+    };
+    meta?: {
+        role?: GroupMemberRole;
     };
 }
 
-export interface GroupActivityAttributes {
-    action: string;
-    summary: string;
-    visibility: string;
-    'created-at': string;
-    'object-type': string;
-    'object-id': string;
-    payload?: Record<string, unknown>;
+interface GroupListParams {
+    'page[limit]'?: number;
+    'page[cursor]'?: string;
 }
 
-export interface GroupActivity {
-    id: string;
-    type: 'group-activity';
-    attributes: GroupActivityAttributes;
-    relationships: {
-        actor: {
-            data: { type: 'user'; id: string };
-            meta?: { name: string; 'first-name': string };
-        };
-    };
+function buildListQuery(params?: GroupListParams): string {
+    const searchParams = new URLSearchParams();
+    if (params?.['page[limit]']) searchParams.append('page[limit]', params['page[limit]'].toString());
+    if (params?.['page[cursor]']) searchParams.append('page[cursor]', params['page[cursor]']);
+    const queryString = searchParams.toString();
+    return queryString ? `?${queryString}` : '';
 }
 
 export const groupApi = {
-    list: () => client(`/groups`),
+    list: () => client<GenericListDocument<GroupResource>>('/groups'),
 
-    get: (id: string) => client(`/groups/${id}`),
+    get: (id: string) => client<{ data: GroupResource }>(`/groups/${id}`),
 
-    getUsers: (id: string) => client(`/groups/${id}/users`),
+    getMembers: (id: string) =>
+        client<GenericListDocument<GroupMemberResource>>(`/groups/${id}/users`),
 
     create: (attributes: GroupAttributes) =>
-        client(`/groups`, {
+        client<{ data: GroupResource }>('/groups', {
             method: 'POST',
             body: JSON.stringify({ data: { type: 'group', attributes } })
         }),
 
     update: (id: string, attributes: Partial<GroupAttributes>) =>
-        client(`/groups/${id}`, {
+        client<{ data: GroupResource }>(`/groups/${id}`, {
             method: 'PATCH',
             body: JSON.stringify({ data: { type: 'group', id, attributes } })
         }),
@@ -90,39 +71,53 @@ export const groupApi = {
             body: JSON.stringify({ data: { type: 'group-members', attributes } })
         }),
 
+    join: (id: string) =>
+        client(`/groups/${id}/join`, {
+            method: 'POST',
+        }),
+
     removeMember: (groupId: string, userId: string) =>
         client(`/groups/${groupId}/users/${userId}`, { method: 'DELETE' }),
 
-    updateMember: (groupId: string, userId: string, role: string | null) =>
+    updateMember: (groupId: string, userId: string, role: GroupMemberRole) =>
         client(`/groups/${groupId}/users/${userId}`, {
             method: 'PATCH',
             body: JSON.stringify({ data: { type: 'group-members', attributes: { role } } })
         }),
 
-    getFeed: (groupId: string, params?: { 'page[limit]'?: number; 'page[cursor]'?: string }, init?: RequestInit) => {
-        const searchParams = new URLSearchParams();
-        if (params?.['page[limit]']) searchParams.append('page[limit]', params['page[limit]'].toString());
-        if (params?.['page[cursor]']) searchParams.append('page[cursor]', params['page[cursor]']);
-        const queryString = searchParams.toString();
-        // @ts-ignore
-        return client(`/groups/${groupId}/feed${queryString ? `?${queryString}` : ''}`, init);
-    },
+    getFeed: (groupId: string, params?: GroupListParams) =>
+        client<GenericListDocument<GroupActivityResource>>(
+            `/groups/${groupId}/feed${buildListQuery(params)}`
+        ),
+
+    listPosts: (groupId: string, params?: GroupListParams) =>
+        client<GenericListDocument<GroupPostResource>>(
+            `/groups/${groupId}/posts${buildListQuery(params)}`
+        ),
 
     getPost: (groupId: string, postId: string) =>
-        client(`/groups/${groupId}/posts/${postId}`),
+        client<{ data: GroupPostResource }>(`/groups/${groupId}/posts/${postId}`),
 
     createPost: (groupId: string, attributes: { body: string; is_pinned?: boolean }) =>
-        client(`/groups/${groupId}/posts`, {
+        client<{ data: GroupPostResource }>(`/groups/${groupId}/posts`, {
             method: 'POST',
             body: JSON.stringify({ data: { type: 'group-post', attributes } })
         }),
 
     updatePost: (groupId: string, postId: string, attributes: { body?: string; is_pinned?: boolean }) =>
-        client(`/groups/${groupId}/posts/${postId}`, {
+        client<{ data: GroupPostResource }>(`/groups/${groupId}/posts/${postId}`, {
             method: 'PATCH',
             body: JSON.stringify({ data: { type: 'group-post', id: postId, attributes } })
         }),
 
     deletePost: (groupId: string, postId: string) =>
-        client(`/groups/${groupId}/posts/${postId}`, { method: 'DELETE' })
+        client(`/groups/${groupId}/posts/${postId}`, { method: 'DELETE' }),
+
+    streamUrl: (groupId: string, token?: string, organizationId?: string | null) => {
+        const base = API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE;
+        const scopedPrefix = organizationId ? `/organizations/${encodeURIComponent(organizationId)}` : '';
+        const url = `${base}${scopedPrefix}/groups/${groupId}/stream`;
+        if (!token) return url;
+        return `${url}?token=${encodeURIComponent(token)}`;
+    }
 };

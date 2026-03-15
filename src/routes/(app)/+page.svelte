@@ -1,13 +1,60 @@
 <script lang="ts">
-    import { auth } from "$lib/stores/auth";
+    import { auth, hasPermission } from "$lib/stores/auth";
     import TodoList from "$lib/components/TodoList.svelte";
-    import { Calendar, DraftingCompass, Users } from "lucide-svelte";
+    import { Calendar, DraftingCompass, Users, Bell, ClipboardList, MessageSquare } from "lucide-svelte";
+    import { onMount } from "svelte";
+    import { eventApi } from "$lib/api/events";
+    import { resourceApi } from "$lib/api/resources";
+
+    let nextEvent: any = $state(null);
+    let resources: any[] = $state([]);
+    let loadingEvent = $state(true);
+    let canOpenEvents = $derived(hasPermission($auth.user, "events:read"));
+    let canOpenResources = $derived(
+        hasPermission($auth.user, "resources:read"),
+    );
+    let canOpenForms = $derived(hasPermission($auth.user, "forms:read"));
+    let canOpenNotifications = $derived(
+        hasPermission($auth.user, "notifications:read"),
+    );
+    let canOpenMessages = $derived(
+        hasPermission($auth.user, "messages:read") ||
+            hasPermission($auth.user, "messages:create"),
+    );
+
+    onMount(async () => {
+        try {
+            const [resEvents, resResources] = await Promise.all([
+                eventApi.list({
+                    start: new Date().toISOString(),
+                    limit: 1,
+                    sort: "start-date",
+                }),
+                resourceApi.list(),
+            ]);
+
+            if (resEvents.ok) {
+                const json = await resEvents.json();
+                if (json.data && json.data.length > 0) {
+                    nextEvent = json.data[0];
+                }
+            }
+            if (resResources.ok) {
+                const json = await resResources.json();
+                resources = json.data || json;
+            }
+        } catch (e) {
+            console.error("Failed to load dashboard data", e);
+        } finally {
+            loadingEvent = false;
+        }
+    });
 </script>
 
 <div class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
     <div class="flex items-center justify-between">
         <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">
-            Dashboard
+            Übersicht
         </h1>
         <span class="text-sm text-zinc-500 dark:text-zinc-400">
             <!-- Mobile Date (Short) -->
@@ -39,7 +86,7 @@
                 Willkommen zurück
             </h3>
             <p class="text-2xl font-bold text-zinc-900 dark:text-white mt-2">
-                {$auth.user?.firstName || "User"}
+                {$auth.user?.firstName || "Benutzer"}
             </p>
             <div
                 class="mt-4 flex items-center text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 w-fit px-2 py-1 rounded-full"
@@ -49,11 +96,68 @@
                 ></span>
                 Aktiver Status
             </div>
-            <p
-                class="mt-4 text-xs text-zinc-400 dark:text-zinc-500 italic border-t border-zinc-100 dark:border-zinc-700/50 pt-2"
+
+            <div
+                class="mt-6 pt-4 border-t border-zinc-100 dark:border-zinc-700/50"
             >
-                Pssst: etwas anderes Aussehen, gleiche Funktionen ;)
-            </p>
+                <h4
+                    class="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-3"
+                >
+                    Nächste Fahrt
+                </h4>
+                {#if loadingEvent}
+                    <div
+                        class="animate-pulse h-10 bg-zinc-100 dark:bg-zinc-700 rounded-lg w-full"
+                    ></div>
+                {:else if nextEvent}
+                    <div class="flex items-start justify-between group">
+                        <div class="flex-1 min-w-0 pr-2">
+                            <div
+                                class="font-medium text-zinc-900 dark:text-white truncate"
+                                title={nextEvent.attributes.title}
+                            >
+                                {nextEvent.attributes.title}
+                            </div>
+                            <div
+                                class="text-sm text-blue-600 dark:text-blue-400 font-bold mt-0.5"
+                            >
+                                {new Date(
+                                    nextEvent.attributes["start-date"],
+                                ).toLocaleDateString("de-DE", {
+                                    weekday: "short",
+                                    day: "numeric",
+                                    month: "numeric",
+                                })} •
+                                {new Date(
+                                    nextEvent.attributes["start-date"],
+                                ).toLocaleTimeString("de-DE", {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                })}
+                            </div>
+                        </div>
+                        <!-- Resource Badge -->
+                        {#if nextEvent.attributes.resource}
+                            {@const r = resources.find(
+                                (r) =>
+                                    String(r.id) ===
+                                    String(nextEvent.attributes.resource),
+                            )}
+                            {#if r}
+                                <span
+                                    class="shrink-0 text-xs px-2 py-1 rounded-md bg-zinc-100 text-zinc-700 border border-zinc-200 dark:bg-zinc-700 dark:text-zinc-300 dark:border-zinc-600"
+                                >
+                                    {r.attributes.title}
+                                </span>
+                            {/if}
+                        {/if}
+                    </div>
+                {:else}
+                    <p class="text-sm text-zinc-400 italic">
+                        Keine anstehenden Fahrten
+                    </p>
+                {/if}
+            </div>
         </div>
 
         <div
@@ -70,9 +174,9 @@
         <div
             class="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-xl shadow-lg text-white"
         >
-            <h3 class="text-blue-100 font-medium">Quick Actions</h3>
+            <h3 class="text-blue-100 font-medium">Schnellaktionen</h3>
             <div class="mt-4 space-y-2">
-                {#if $auth.user?.status && $auth.user.status >= 2}
+                {#if canOpenEvents}
                     <a
                         href="/events"
                         class="flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-colors px-3 py-2 rounded-lg text-sm font-medium text-white"
@@ -80,6 +184,8 @@
                         <Calendar class="w-4 h-4" />
                         Kalender anschauen
                     </a>
+                {/if}
+                {#if canOpenResources}
                     <a
                         href="/resources"
                         class="flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-colors px-3 py-2 rounded-lg text-sm font-medium text-white"
@@ -95,6 +201,33 @@
                     <Users class="w-4 h-4" />
                     Gruppen verwalten
                 </a>
+                {#if canOpenForms}
+                    <a
+                        href="/forms"
+                        class="flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-colors px-3 py-2 rounded-lg text-sm font-medium text-white"
+                    >
+                        <ClipboardList class="w-4 h-4" />
+                        Formulare
+                    </a>
+                {/if}
+                {#if canOpenNotifications}
+                    <a
+                        href="/notifications"
+                        class="flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-colors px-3 py-2 rounded-lg text-sm font-medium text-white"
+                    >
+                        <Bell class="w-4 h-4" />
+                        Benachrichtigungen
+                    </a>
+                {/if}
+                {#if canOpenMessages}
+                    <a
+                        href="/messages"
+                        class="flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-colors px-3 py-2 rounded-lg text-sm font-medium text-white"
+                    >
+                        <MessageSquare class="w-4 h-4" />
+                        Nachrichten
+                    </a>
+                {/if}
             </div>
         </div>
     </div>

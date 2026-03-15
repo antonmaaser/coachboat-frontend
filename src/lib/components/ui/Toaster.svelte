@@ -2,6 +2,7 @@
     import { toast } from "$lib/stores/toast";
     import { fly } from "svelte/transition";
     import { CheckCircle2, AlertCircle, Info, X } from "lucide-svelte";
+    import Button from "$lib/components/ui/Button.svelte";
 
     // Only needed for mapping distinct icons per type
 </script>
@@ -27,13 +28,16 @@
                 {t.message}
             </p>
 
-            <button
+            <Button
+                variant="ghost"
+                tone="neutral"
+                iconOnly
+                ariaLabel="Schließen"
                 onclick={() => toast.remove(t.id)}
-                class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
             >
                 <X class="w-4 h-4" />
-                <span class="sr-only">Close</span>
-            </button>
+                <span class="sr-only">Schließen</span>
+            </Button>
         </div>
     {/each}
 </div>

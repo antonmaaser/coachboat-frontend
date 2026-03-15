@@ -16,7 +16,7 @@ const resourceData = (resource: any, category?: any) => ({
     attributes: {
         ...resource,
         'category-id': category ? category.id : null,
-        'is-ready': resource.isReady
+        'is-bookable': resource.isBookable
     }
 });
 
@@ -24,8 +24,8 @@ test.describe('Resources - Display & Listing', () => {
     test.use({ storageState: STORAGE_STATE.user });
     const user = AUTH_USERS.user;
 
-    const resource1 = createResource({ title: 'Coachboat Alpha', description: 'Main Boat', isReady: true });
-    const resource2 = createResource({ title: 'Trailer Beta', description: 'Small Trailer', isReady: false });
+    const resource1 = createResource({ title: 'Coachboat Alpha', description: 'Main Boat', isBookable: true });
+    const resource2 = createResource({ title: 'Trailer Beta', description: 'Small Trailer', isBookable: false });
 
     test.beforeEach(async ({ page }) => {
         await setupMocks(page, user, {

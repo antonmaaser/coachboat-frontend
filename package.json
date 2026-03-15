@@ -33,6 +33,9 @@
 		"@editorjs/list": "^2.0.9",
 		"@editorjs/paragraph": "^2.11.7",
 		"@editorjs/text-variant-tune": "^1.0.3",
+		"ajv": "^8.17.1",
+		"ajv-formats": "^3.0.1",
+		"drizzle-orm": "^0.45.1",
 		"lucide-svelte": "^0.556.0"
 	}
 }

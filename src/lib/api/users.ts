@@ -1,39 +1,21 @@
 import { client } from './client';
+import type { UserResource, GenericListDocument, GenericDataDocument } from './types';
 
-export interface UserAttributes {
-    name?: string;
-    'first-name'?: string;
-    email?: string;
-    password?: string;
-    status?: number;
-    'is-active'?: boolean;
-    role?: { slug: string; name: string } | string;
-    'created-at'?: string;
-    effective_permissions?: {
-        global: { role: string; roleName: string; permissions: string[] } | null;
-        contexts: { id: string; name: string; role: string; roleName: string; permissions: string[] }[];
-    };
-}
-
-export interface User {
-    id: string;
-    type: 'user';
-    attributes: UserAttributes;
-}
+export type UserAttributes = UserResource['attributes'];
 
 export const userApi = {
-    list: () => client(`/users`),
+    list: () => client<GenericListDocument<UserResource>>(`/users`),
 
-    get: (id: string) => client(`/users/${id}`),
+    get: (id: string) => client<{ data: UserResource }>(`/users/${id}`),
 
-    create: (attributes: UserAttributes) =>
-        client(`/users`, {
+    create: (attributes: UserResource['attributes']) =>
+        client<{ data: UserResource }>(`/users`, {
             method: 'POST',
             body: JSON.stringify({ data: { type: 'user', attributes } })
         }),
 
-    update: (id: string, attributes: Partial<UserAttributes>) =>
-        client(`/users/${id}`, {
+    update: (id: string, attributes: Partial<UserResource['attributes']>) =>
+        client<{ data: UserResource }>(`/users/${id}`, {
             method: 'PATCH',
             body: JSON.stringify({ data: { type: 'user', id, attributes } })
         }),

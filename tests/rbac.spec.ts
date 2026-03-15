@@ -11,6 +11,27 @@ import { AUTH_USERS, STORAGE_STATE } from './fixtures/auth';
 
 const admin = AUTH_USERS.admin;
 const regularUser = AUTH_USERS.user;
+const orgScopedRbacUser = {
+    ...regularUser,
+    organizationId: 'org-ctx-1',
+    permissions: [],
+    effective_permissions: {
+        global: {
+            role: 'user',
+            roleName: 'Benutzer',
+            permissions: [],
+        },
+        contexts: [
+            {
+                id: 'org-ctx-1',
+                name: 'Org Context',
+                role: 'org_manager',
+                roleName: 'Org Manager',
+                permissions: ['roles:read'],
+            },
+        ],
+    },
+};
 
 // Mock role data mirroring the database schema
 const mockRoles = [
@@ -107,5 +128,21 @@ test.describe('RBAC Matrix View - Authorization', () => {
         await page.goto('/settings/rbac');
 
         await expect(page.getByText('Zugriff verweigert oder Fehler')).toBeVisible();
+    });
+});
+
+test.describe('RBAC Matrix View - Org-scoped permissions', () => {
+    test('Org-scoped roles:read allows sidebar link and matrix access', async ({ page }) => {
+        await setupMocks(page, orgScopedRbacUser, {
+            'GET /roles': { data: mockRoles },
+        });
+
+        await page.goto('/');
+        const sidebar = page.locator('aside');
+        await expect(sidebar.getByText('Berechtigungen')).toBeVisible();
+
+        await page.goto('/settings/rbac');
+        await expect(page.getByRole('heading', { name: 'Berechtigungsmatrix' })).toBeVisible();
+        await expect(page.getByText('users:create')).toBeVisible();
     });
 });

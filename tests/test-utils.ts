@@ -92,7 +92,8 @@ function getCommonHandlers(user: any) {
         'AUTH POST /token': {
             access_token: 'fake-access-token',
             refresh_token: 'fake-refresh-token',
-            user_id: user.id
+            user_id: user.id,
+            organizationId: user.organizationId || null,
         },
         [`GET /users/${user.id}`]: {
             data: {
@@ -101,7 +102,11 @@ function getCommonHandlers(user: any) {
                     name: user.name,
                     'first-name': user.firstName,
                     status: user.status,
-                    permissions: user.permissions
+                    permissions: user.permissions,
+                    effective_permissions: user.effective_permissions,
+                    organizations: user.organizationId
+                        ? [{ id: user.organizationId, name: 'Test Org', slug: 'test-org' }]
+                        : [],
                 }
             }
         },
@@ -110,6 +115,8 @@ function getCommonHandlers(user: any) {
         'GET /groups': [],
         'GET /resource-categories': [],
         'GET /events': [],
+        'GET /forms': { data: [] },
+        'GET /notifications': { data: [] },
     };
 }
 
@@ -117,20 +124,32 @@ export async function setupMocks(page: Page, user: any, extraHandlers: Record<st
     const commonHandlers = getCommonHandlers(user);
     await mockApi(page, { ...commonHandlers, ...extraHandlers });
 
-    // Ensure permissions are correctly set in localStorage for the test
-    if (user.permissions) {
-        await page.addInitScript((permissions) => {
+    // Ensure user permissions/context are correctly set in localStorage for the test
+    if (user.permissions || user.effective_permissions || user.organizationId) {
+        await page.addInitScript(({ permissions, effectivePermissions, organizationId }) => {
             try {
                 const stored = localStorage.getItem('coachboat_auth');
                 if (stored) {
                     const state = JSON.parse(stored);
                     if (state.user) {
-                        state.user.permissions = permissions;
+                        if (permissions) {
+                            state.user.permissions = permissions;
+                        }
+                        if (effectivePermissions) {
+                            state.user.effective_permissions = effectivePermissions;
+                        }
+                        if (organizationId) {
+                            state.organizationId = organizationId;
+                        }
                         localStorage.setItem('coachboat_auth', JSON.stringify(state));
                     }
                 }
             } catch (e) { }
-        }, user.permissions);
+        }, {
+            permissions: user.permissions,
+            effectivePermissions: user.effective_permissions,
+            organizationId: user.organizationId || null,
+        });
     }
 }
 

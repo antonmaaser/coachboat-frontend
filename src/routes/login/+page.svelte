@@ -5,6 +5,7 @@
     import { Loader2, Mail, Lock, AlertCircle } from "lucide-svelte";
     import { AUTH_BASE } from "$lib/config";
     import TextInput from "$lib/components/ui/TextInput.svelte";
+    import Button from "$lib/components/ui/Button.svelte";
 
     let email = $state("");
     let password = $state("");
@@ -40,14 +41,15 @@
 
             const tokenData = await tokenRes.json();
 
-            // Set initial auth state
+            // Set initial auth state with organizationId from token response
             auth.set({
                 user: { id: tokenData.user_id },
                 accessToken: tokenData.access_token,
                 refreshToken: tokenData.refresh_token,
+                organizationId: tokenData.organizationId || null,
             });
 
-            // 2. Fetch User Details
+            // 2. Fetch User Details (including organizations list)
             try {
                 const userRes = await client(`/users/${tokenData.user_id}`);
                 if (userRes.ok) {
@@ -60,9 +62,11 @@
                             email: attrs.email,
                             name: attrs.name,
                             firstName: attrs["first-name"] || attrs.firstName,
-                            status: attrs.status,
                             isActive: attrs["is-active"],
+                            status: attrs.status,
                             permissions: attrs.permissions,
+                            effective_permissions: attrs.effective_permissions,
+                            organizations: attrs.organizations || [],
                         },
                     }));
                 }
@@ -73,7 +77,7 @@
 
             goto("/");
         } catch (e: any) {
-            error = e.message || "An error occurred";
+            error = e.message || "Ein Fehler ist aufgetreten";
         } finally {
             loading = false;
         }
@@ -137,10 +141,14 @@
             </div>
 
             <div>
-                <button
+                <Button
+                    variant="solid"
+                    tone="primary"
+                    size="lg"
+                    width="full"
+                    elevated
                     type="submit"
                     disabled={loading}
-                    class="group relative flex w-full justify-center rounded-lg bg-blue-600 px-3 py-3 text-sm font-semibold text-white hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-600/20"
                 >
                     {#if loading}
                         <Loader2 class="mr-2 h-5 w-5 animate-spin" />
@@ -148,7 +156,7 @@
                     {:else}
                         Anmelden
                     {/if}
-                </button>
+                </Button>
             </div>
         </form>
 

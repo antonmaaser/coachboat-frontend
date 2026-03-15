@@ -1,11 +1,12 @@
 <script lang="ts">
   import { client } from "$lib/api/client";
   import { goto } from "$app/navigation";
-  import { page } from "$app/stores";
+  import { page } from "$app/state";
   import { Loader2, KeyRound, CheckCircle2, AlertCircle } from "lucide-svelte";
   import { onMount } from "svelte";
   import { AUTH_BASE } from "$lib/config";
   import TextInput from "$lib/components/ui/TextInput.svelte";
+  import Button from "$lib/components/ui/Button.svelte";
 
   let token = $state("");
   let password = $state("");
@@ -15,7 +16,7 @@
   let success = $state(false);
 
   onMount(() => {
-    const t = $page.url.searchParams.get("token");
+    const t = page.url.searchParams.get("token");
     if (t) token = t;
   });
 
@@ -53,7 +54,7 @@
         const errData = await res.json().catch(() => ({}));
         throw new Error(
           errData.errors?.[0]?.detail ||
-            "Aktivierung fehlgeschlagen. Token könnte ungültig oder abgelaufen sein.",
+            "Aktivierung fehlgeschlagen. Aktivierungstoken ist ungültig oder abgelaufen.",
         );
       }
 
@@ -121,10 +122,10 @@
             <TextInput
               id="token"
               name="token"
-              label="Aktivierungs Token"
+              label="Aktivierungstoken"
               required
               bind:value={token}
-              placeholder="Falls nicht automatisch eingegeben, hier Token einfügen"
+              placeholder="Falls nicht automatisch eingefügt, hier Aktivierungstoken eingeben"
             />
           </div>
 
@@ -152,10 +153,14 @@
         </div>
 
         <div class="space-y-4">
-          <button
+          <Button
+            variant="solid"
+            tone="success"
+            size="lg"
+            width="full"
+            elevated
             type="submit"
             disabled={loading}
-            class="group relative flex w-full justify-center rounded-lg bg-green-600 px-3 py-3 text-sm font-semibold text-white hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-lg shadow-green-600/20"
           >
             {#if loading}
               <Loader2 class="mr-2 h-5 w-5 animate-spin" />
@@ -163,7 +168,7 @@
             {:else}
               Konto aktivieren
             {/if}
-          </button>
+          </Button>
 
           <div class="text-center text-sm text-zinc-500 dark:text-zinc-400">
             <a
