@@ -598,7 +598,7 @@
 
 </script>
 
-<div class="space-y-6">
+<div class="space-y-6 xl:flex xl:h-[calc(100dvh-8rem)] xl:flex-col xl:gap-6 xl:space-y-0">
     <div class="flex items-center justify-between gap-3">
         <div class="flex items-center gap-3">
             <Mail class="h-6 w-6 text-zinc-700 dark:text-zinc-300" />
@@ -616,7 +616,7 @@
             Keine Berechtigung für Nachrichten (`messages:read` oder `messages:create`).
         </section>
     {:else if canReadMessages}
-        <div class="grid gap-4 xl:grid-cols-[22rem_minmax(0,1fr)]">
+        <div class="grid gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-[22rem_minmax(0,1fr)]">
             <ConversationList
                 conversations={conversations}
                 selectedConversationId={selectedConversationId}

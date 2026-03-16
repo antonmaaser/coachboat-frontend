@@ -209,7 +209,9 @@
                     loading={loading}
                     disabled={submitDisabled}
                     ariaLabel="Senden"
-                    class="absolute bottom-2 right-2"
+                    class="absolute right-2 transition-[top,bottom,transform] duration-200 ease-out {bodyFocused
+                        ? 'bottom-2'
+                        : 'top-1/2 -translate-y-1/2'}"
                 >
                     <SendHorizontal class="h-4 w-4" />
                 </Button>

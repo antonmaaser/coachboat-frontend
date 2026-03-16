@@ -117,7 +117,7 @@
 </script>
 
 <section
-    class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800"
+    class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800 xl:flex xl:h-full xl:min-h-0 xl:flex-col"
 >
     <div class="mb-4 flex items-center justify-between gap-2">
         <div class="flex items-center gap-2">
@@ -214,71 +214,73 @@
 
     <ErrorAlert error={error} />
 
-    {#if loading}
-        <div
-            class="rounded-lg border border-dashed border-zinc-200 px-3 py-4 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400"
-        >
-            Lade Unterhaltungen...
-        </div>
-    {:else if conversations.length === 0}
-        <div
-            class="rounded-lg border border-dashed border-zinc-200 px-3 py-4 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400"
-        >
-            Keine Unterhaltungen gefunden.
-        </div>
-    {:else}
-        <div class="space-y-2">
-            {#each conversations as conversation}
-                {@const active = conversation.id === selectedConversationId}
-                {@const title = getConversationTitle(conversation)}
-                {@const subtitle = getConversationSubtitle(conversation)}
-                {@const preview = getConversationLastBody(conversation)}
-                {@const updatedAt = getConversationLastDate(conversation)}
-                <button
-                    type="button"
-                    class="w-full rounded-lg border p-3 text-left transition-colors {active
-                        ? 'border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/20'
-                        : 'border-zinc-200 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-700/60'}"
-                    onclick={() => onSelect?.(conversation)}
-                >
-                    <div class="flex items-start gap-3">
-                        {#if conversation.attributes.kind === 'group'}
-                            <div
-                                class="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300"
-                            >
-                                <Users class="h-4 w-4" />
-                            </div>
-                        {:else}
-                            <ProfileAvatar
-                                name={getConversationAvatarName(conversation)}
-                                fallback="D"
-                                size="sm"
-                            />
-                        {/if}
-
-                        <div class="min-w-0 flex-1">
-                            <div class="mb-1 flex items-center justify-between gap-2">
-                                <p
-                                    class="truncate text-sm font-semibold text-zinc-900 dark:text-white"
+    <div class="xl:min-h-0 xl:flex-1">
+        {#if loading}
+            <div
+                class="rounded-lg border border-dashed border-zinc-200 px-3 py-4 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400"
+            >
+                Lade Unterhaltungen...
+            </div>
+        {:else if conversations.length === 0}
+            <div
+                class="rounded-lg border border-dashed border-zinc-200 px-3 py-4 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400"
+            >
+                Keine Unterhaltungen gefunden.
+            </div>
+        {:else}
+            <div class="space-y-2 xl:h-full xl:overflow-y-auto xl:pr-1">
+                {#each conversations as conversation (conversation.id)}
+                    {@const active = conversation.id === selectedConversationId}
+                    {@const title = getConversationTitle(conversation)}
+                    {@const subtitle = getConversationSubtitle(conversation)}
+                    {@const preview = getConversationLastBody(conversation)}
+                    {@const updatedAt = getConversationLastDate(conversation)}
+                    <button
+                        type="button"
+                        class="w-full rounded-lg border p-3 text-left transition-colors {active
+                            ? 'border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/20'
+                            : 'border-zinc-200 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-700/60'}"
+                        onclick={() => onSelect?.(conversation)}
+                    >
+                        <div class="flex items-start gap-3">
+                            {#if conversation.attributes.kind === 'group'}
+                                <div
+                                    class="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300"
                                 >
-                                    {title}
+                                    <Users class="h-4 w-4" />
+                                </div>
+                            {:else}
+                                <ProfileAvatar
+                                    name={getConversationAvatarName(conversation)}
+                                    fallback="D"
+                                    size="sm"
+                                />
+                            {/if}
+
+                            <div class="min-w-0 flex-1">
+                                <div class="mb-1 flex items-center justify-between gap-2">
+                                    <p
+                                        class="truncate text-sm font-semibold text-zinc-900 dark:text-white"
+                                    >
+                                        {title}
+                                    </p>
+                                    <p class="shrink-0 text-xs text-zinc-500 dark:text-zinc-400">
+                                        {formatDateTime(updatedAt)}
+                                    </p>
+                                </div>
+
+                                <p class="mb-1 truncate text-xs text-zinc-500 dark:text-zinc-400">
+                                    {subtitle}
                                 </p>
-                                <p class="shrink-0 text-xs text-zinc-500 dark:text-zinc-400">
-                                    {formatDateTime(updatedAt)}
+
+                                <p class="truncate text-sm text-zinc-700 dark:text-zinc-300">
+                                    {preview || 'Noch keine Nachricht im Verlauf.'}
                                 </p>
                             </div>
-
-                            <p class="mb-1 truncate text-xs text-zinc-500 dark:text-zinc-400">
-                                {subtitle}
-                            </p>
-
-                            <p class="truncate text-sm text-zinc-700 dark:text-zinc-300">
-                                {preview || 'Noch keine Nachricht im Verlauf.'}
-                            </p>
                         </div>
-                    </div>
-                </button>
-            {/each}
-        </div>
-    {/if}
+                    </button>
+                {/each}
+            </div>
+        {/if}
+    </div>
 </section>
