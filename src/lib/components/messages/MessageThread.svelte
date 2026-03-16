@@ -6,12 +6,16 @@
     import ErrorAlert from '$lib/components/ui/ErrorAlert.svelte';
     import {
         formatDateTime,
+        getFirstNameWithLastInitial,
         getConversationTitle,
         isOwnMessage,
     } from './utils';
 
     let {
         conversation = null,
+        displayTitle = undefined,
+        displaySubtitle = undefined,
+        hasThreadContext = undefined,
         messages = [],
         loading = false,
         loadingMore = false,
@@ -23,6 +27,9 @@
         onRetry,
     } = $props<{
         conversation?: ConversationResource | null;
+        displayTitle?: string;
+        displaySubtitle?: string;
+        hasThreadContext?: boolean;
         messages?: MessageResource[];
         loading?: boolean;
         loadingMore?: boolean;
@@ -33,6 +40,48 @@
         onLoadMore?: () => void;
         onRetry?: () => void;
     }>();
+
+    const resolvedHasThreadContext = $derived(hasThreadContext ?? !!conversation);
+    const resolvedTitle = $derived(
+        displayTitle || (conversation ? getConversationTitle(conversation) : 'Nachrichten'),
+    );
+    const resolvedSubtitle = $derived(
+        displaySubtitle ||
+            (conversation
+                ? conversation.attributes.kind === 'group'
+                    ? 'Gruppenchat'
+                    : 'Direktnachricht'
+                : ''),
+    );
+
+    function getMessageSeriesKey(message: MessageResource, own: boolean): string {
+        const senderId = message.attributes['sender-id'];
+        if (typeof senderId === 'string' && senderId.trim() !== '') {
+            return `sender:${senderId}`;
+        }
+        if (!own && conversation?.attributes.kind === 'direct') {
+            return 'sender:counterpart';
+        }
+        return own ? 'sender:self' : `message:${message.id}`;
+    }
+
+    function getOtherAuthorLabel(message: MessageResource): string {
+        const senderSource =
+            message.attributes.sender ??
+            message.attributes.author ??
+            message.attributes.user ??
+            null;
+        const fromMessage = getFirstNameWithLastInitial(senderSource, '');
+        if (fromMessage) {
+            return fromMessage;
+        }
+
+        if (conversation?.attributes.kind === 'direct') {
+            return getFirstNameWithLastInitial(conversation.attributes.counterpart, 'Teilnehmer');
+        }
+
+        return 'Teilnehmer';
+    }
 </script>
 
 <section
@@ -41,25 +90,19 @@
     <div class="mb-4 flex items-center justify-between gap-3">
         <div>
             <h2 class="text-sm font-semibold text-zinc-900 dark:text-white">
-                {conversation ? getConversationTitle(conversation) : 'Nachrichten'}
+                {resolvedTitle}
             </h2>
-            {#if conversation}
+            {#if resolvedSubtitle}
                 <p class="text-xs text-zinc-500 dark:text-zinc-400">
-                    {conversation.attributes.kind === 'group' ? 'Gruppenchat' : 'Direktnachricht'}
+                    {resolvedSubtitle}
                 </p>
             {/if}
         </div>
-
-        {#if onRetry && conversation}
-            <Button variant="outline" tone="neutral" size="xs" onclick={onRetry}>
-                Aktualisieren
-            </Button>
-        {/if}
     </div>
 
     <ErrorAlert error={error} />
 
-    {#if !conversation}
+    {#if !resolvedHasThreadContext}
         <div
             class="flex min-h-44 items-center justify-center rounded-lg border border-dashed border-zinc-200 px-4 py-8 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400"
         >
@@ -97,39 +140,45 @@
             </div>
         {:else}
             <div class="max-h-[32rem] space-y-3 overflow-y-auto pr-1">
-                {#each messages as message}
+                {#each messages as message, index (message.id)}
                     {@const own = isOwnMessage(message, currentUserId)}
-                    <article class="flex {own ? 'justify-end' : 'justify-start'}">
+                    {@const previous = index > 0 ? messages[index - 1] : null}
+                    {@const next = index < messages.length - 1 ? messages[index + 1] : null}
+                    {@const seriesKey = getMessageSeriesKey(message, own)}
+                    {@const previousSeriesKey = previous
+                        ? getMessageSeriesKey(previous, isOwnMessage(previous, currentUserId))
+                        : null}
+                    {@const nextSeriesKey = next
+                        ? getMessageSeriesKey(next, isOwnMessage(next, currentUserId))
+                        : null}
+                    {@const showAuthor = previousSeriesKey !== seriesKey}
+                    {@const showTimestamp = nextSeriesKey !== seriesKey}
+                    {@const authorLabel = own ? 'Du' : getOtherAuthorLabel(message)}
+                    <article class="flex flex-col {own ? 'items-end' : 'items-start'}">
                         <div
-                            class="max-w-[90%] rounded-2xl px-4 py-3 shadow-sm sm:max-w-[80%] {own
+                            class="min-w-[14rem] max-w-[90%] rounded-2xl px-4 py-3 shadow-sm sm:min-w-[18rem] sm:max-w-[80%] {own
                                 ? 'bg-blue-600 text-white'
                                 : 'border border-zinc-200 bg-zinc-50 text-zinc-800 dark:border-zinc-700 dark:bg-zinc-700/50 dark:text-zinc-100'}"
                         >
-                            {#if message.attributes.subject}
+                            {#if showAuthor}
                                 <p
-                                    class="mb-1 text-xs font-semibold uppercase tracking-wide {own
+                                    class="mb-1 text-xs font-medium {own
                                         ? 'text-blue-100'
                                         : 'text-zinc-500 dark:text-zinc-300'}"
                                 >
-                                    {message.attributes.subject}
+                                    {authorLabel}
                                 </p>
                             {/if}
 
                             <p class="whitespace-pre-wrap text-sm leading-relaxed">
                                 {message.attributes.body}
                             </p>
-
-                            <div
-                                class="mt-2 flex items-center justify-between gap-3 text-[11px] {own
-                                    ? 'text-blue-100'
-                                    : 'text-zinc-500 dark:text-zinc-400'}"
-                            >
-                                <span>{own ? 'Du' : 'Teilnehmer'}</span>
-                                <span>
-                                    {formatDateTime(message.attributes['created-at'])}
-                                </span>
-                            </div>
                         </div>
+                        {#if showTimestamp}
+                            <div class="mt-1 px-1 text-[11px] text-zinc-500 dark:text-zinc-400">
+                                <span>{formatDateTime(message.attributes['created-at'])}</span>
+                            </div>
+                        {/if}
                     </article>
                 {/each}
             </div>

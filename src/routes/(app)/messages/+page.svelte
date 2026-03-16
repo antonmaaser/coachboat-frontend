@@ -21,9 +21,11 @@
     import ConversationList from '$lib/components/messages/ConversationList.svelte';
     import MessageComposer from '$lib/components/messages/MessageComposer.svelte';
     import MessageThread from '$lib/components/messages/MessageThread.svelte';
-    import { getMessageTimestamp } from '$lib/components/messages/utils';
+    import {
+        getDirectConversationTitle,
+        getMessageTimestamp,
+    } from '$lib/components/messages/utils';
     import ErrorAlert from '$lib/components/ui/ErrorAlert.svelte';
-    import Button from '$lib/components/ui/Button.svelte';
     import { extractErrorMessage } from '$lib/utils/error';
 
     type ConversationFilter = ConversationKindFilter | 'all';
@@ -97,6 +99,20 @@
                 group.attributes.title?.trim() ||
                 `Gruppe ${group.id.slice(0, 8)}`,
         })),
+    );
+
+    const hasThreadContext = $derived(
+        !!selectedConversation || (composerMode === 'new' && !!composerTarget),
+    );
+    const threadDisplayTitle = $derived(
+        composerMode === 'new' && composerTarget ? composerTarget.label : undefined,
+    );
+    const threadDisplaySubtitle = $derived(
+        composerMode === 'new' && composerTarget
+            ? composerTarget.kind === 'group'
+                ? 'Gruppenchat'
+                : 'Direktnachricht'
+            : undefined,
     );
 
     function hasAnyMessagePermission(
@@ -184,25 +200,7 @@
     }
 
     function getUserOptionLabel(user: UserResource): string {
-        const firstName =
-            typeof user.attributes['first-name'] === 'string'
-                ? user.attributes['first-name'].trim()
-                : '';
-        const name =
-            typeof user.attributes.name === 'string'
-                ? user.attributes.name.trim()
-                : '';
-        const email =
-            typeof user.attributes.email === 'string'
-                ? user.attributes.email.trim()
-                : '';
-
-        const base = [firstName, name].filter(Boolean).join(' ').trim() || name || email;
-        if (!base && email) return email;
-        if (email && !base.includes(email)) {
-            return `${base} (${email})`;
-        }
-        return base || `Benutzer ${user.id.slice(0, 8)}`;
+        return getDirectConversationTitle(user, `Benutzer ${user.id.slice(0, 8)}`);
     }
 
     async function loadMessages(conversation: ConversationResource, cursor?: string) {
@@ -608,6 +606,7 @@
                 Nachrichten
             </h1>
         </div>
+
     </div>
 
     {#if !canReadMessages && !canCreateMessages}
@@ -636,6 +635,9 @@
             />
             <MessageThread
                 conversation={selectedConversation}
+                displayTitle={threadDisplayTitle}
+                displaySubtitle={threadDisplaySubtitle}
+                hasThreadContext={hasThreadContext}
                 messages={sortedMessages}
                 loading={messagesLoading}
                 loadingMore={loadingOlderMessages}

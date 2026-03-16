@@ -6,7 +6,6 @@
     import ErrorAlert from '$lib/components/ui/ErrorAlert.svelte';
     import SearchableSelect from '$lib/components/ui/SearchableSelect.svelte';
     import TabToggle, { type TabToggleOption } from '$lib/components/ui/TabToggle.svelte';
-    import Toggle from '$lib/components/ui/Toggle.svelte';
 
     let {
         mode = 'conversation',
@@ -42,7 +41,7 @@
     let targetUserId = $state('');
     let targetGroupId = $state('');
     let body = $state('');
-    let firstLineAsSubject = $state(false);
+    let bodyFocused = $state(false);
     let localError = $state('');
     const targetKindOptions = [
         { value: 'direct', label: 'Direkt', icon: User },
@@ -79,55 +78,21 @@
         return { 'recipient-id': recipientId };
     }
 
-    function buildBodyAndSubject(rawBody: string): {
-        body: string;
-        subject?: string;
-    } {
-        const normalized = rawBody.replace(/\r\n/g, '\n');
-
-        if (!firstLineAsSubject) {
-            return {
-                body: normalized.trim(),
-            };
-        }
-
-        const lines = normalized.split('\n');
-        if (lines.length < 2) {
-            return {
-                body: normalized.trim(),
-            };
-        }
-
-        const [firstLine, ...rest] = lines;
-        const parsedSubject = firstLine.trim();
-        const parsedBody = rest.join('\n').trim();
-
-        if (!parsedSubject) {
-            return {
-                body: normalized.trim(),
-            };
-        }
-
-        return {
-            body: parsedBody,
-            subject: parsedSubject,
-        };
+    function normalizeBody(rawBody: string): string {
+        return rawBody.replace(/\r\n/g, '\n').trim();
     }
 
     async function handleSubmit(event: Event) {
         event.preventDefault();
         localError = '';
 
-        const parsed = buildBodyAndSubject(body);
-        if (!parsed.body) {
+        const normalizedBody = normalizeBody(body);
+        if (!normalizedBody) {
             localError = 'Bitte einen Nachrichtentext eingeben.';
             return;
         }
 
-        const payload: CreateMessageAttributes = { body: parsed.body };
-        if (parsed.subject) {
-            payload.subject = parsed.subject;
-        }
+        const payload: CreateMessageAttributes = { body: normalizedBody };
 
         if (mode === 'conversation') {
             const target = resolveConversationTarget(conversation);
@@ -172,22 +137,6 @@
         </h2>
     {/if}
 
-    {#if !conversation}
-        <div
-            class="mb-3 rounded-lg border border-dashed border-zinc-200 px-3 py-2 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400"
-        >
-            {#if mode === 'conversation'}
-                Wähle eine Unterhaltung aus, um zu antworten.
-            {:else if target}
-                Neue Unterhaltung mit: {target.label}
-            {:else if externalTargetOnly}
-                Starte über den Neu-Button eine Unterhaltung und wähle dort das Ziel.
-            {:else}
-                Wähle ein Ziel für die neue Unterhaltung.
-            {/if}
-        </div>
-    {/if}
-
     <ErrorAlert error={combinedError} />
 
     <form class="space-y-3" onsubmit={handleSubmit}>
@@ -230,47 +179,26 @@
                     />
                 {/if}
             </div>
-        {:else if mode === 'new' && target}
-            <div
-                class="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-700/40 dark:text-zinc-200"
-            >
-                Ziel: {target.label}
-            </div>
-        {/if}
-
-        <Toggle
-            checked={firstLineAsSubject}
-            onchange={(checked) => {
-                firstLineAsSubject = checked;
-            }}
-            label="Erste Zeile als Betreff verwenden"
-            class="text-sm text-zinc-700 dark:text-zinc-300"
-        />
-
-        {#if firstLineAsSubject}
-            <p class="text-xs text-zinc-500 dark:text-zinc-400">
-                Erste Zeile = Betreff, restliche Zeilen = Nachricht.
-            </p>
         {/if}
 
         <div class="space-y-1">
-            <label
-                for="message-composer-input"
-                class="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
-            >
-                Nachricht<span class="text-red-500">*</span>
-            </label>
             <div class="relative">
                 <textarea
                     id="message-composer-input"
                     bind:value={body}
-                    rows={4}
+                    rows={bodyFocused ? 4 : 1}
                     required
                     disabled={submitDisabled}
-                    class="block w-full rounded-lg border-0 bg-zinc-50 px-3 py-2 pr-14 text-sm text-zinc-900 ring-1 ring-inset ring-zinc-200 placeholder:text-zinc-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 dark:bg-zinc-900/50 dark:text-white dark:ring-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder={firstLineAsSubject
-                        ? "Betreff in die erste Zeile, dann Nachrichtentext..."
-                        : "Nachricht eingeben..."}
+                    onfocus={() => {
+                        bodyFocused = true;
+                    }}
+                    onblur={() => {
+                        bodyFocused = false;
+                    }}
+                    class="block w-full resize-none overflow-hidden rounded-lg border-0 bg-zinc-50 px-3 pr-14 text-sm text-zinc-900 ring-1 ring-inset ring-zinc-200 placeholder:text-zinc-400 transition-[height,padding] duration-200 ease-out focus:ring-2 focus:ring-inset focus:ring-blue-600 dark:bg-zinc-900/50 dark:text-white dark:ring-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 {bodyFocused
+                        ? 'h-24 py-2'
+                        : 'h-10 py-2.5'}"
+                    placeholder="Nachricht eingeben..."
                 ></textarea>
 
                 <Button
