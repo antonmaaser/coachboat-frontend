@@ -1,13 +1,13 @@
-// Development Configuration (Vite Dev Mode)
+import { env } from '$env/dynamic/public';
+
 const DEV_CONFIG = {
     API_BASE: '/api',
     AUTH_BASE: '/auth'
 };
 
-// Production Configuration (Build/Runtime)
 const PROD_CONFIG = {
-    API_BASE: 'https://api.coachboat-planer.de',
-    AUTH_BASE: 'https://auth.coachboat-planer.de'
+    API_BASE: env.PUBLIC_API_BASE || 'https://api.coachboat-planer.de',
+    AUTH_BASE: env.PUBLIC_AUTH_BASE || 'https://auth.coachboat-planer.de'
 };
 
 const config = import.meta.env.DEV ? DEV_CONFIG : PROD_CONFIG;

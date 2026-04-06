@@ -1,0 +1,17 @@
+node_modules
+.git
+.agent
+.vscode
+.npm-cache
+.svelte-kit
+build
+playwright-report
+test-results
+tests
+.DS_Store
+.env
+.env.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
