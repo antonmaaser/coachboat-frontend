@@ -29,6 +29,45 @@ function readTextWithAttributes(source: unknown, keys: string[]): string | null 
     return readText(record.attributes, keys);
 }
 
+export function getDirectConversationTitle(source: unknown, fallback: string): string {
+    const firstName = readTextWithAttributes(source, ['first-name']) || '';
+    const name = readTextWithAttributes(source, ['name']) || '';
+    const email = readTextWithAttributes(source, ['email']) || '';
+
+    const base = [firstName, name].filter(Boolean).join(' ').trim() || name || email;
+    if (!base) return fallback;
+    if (email && !base.includes(email)) {
+        return `${base} (${email})`;
+    }
+
+    return base;
+}
+
+export function getFirstNameWithLastInitial(source: unknown, fallback: string): string {
+    let firstName = readTextWithAttributes(source, ['first-name']) || '';
+    let lastName = readTextWithAttributes(source, ['last-name']) || '';
+    const name = readTextWithAttributes(source, ['name']) || '';
+
+    if ((!firstName || !lastName) && name) {
+        const parts = name.split(/\s+/).filter(Boolean);
+        if (!firstName) {
+            firstName = parts[0] || '';
+        }
+        if (!lastName && parts.length > 1) {
+            lastName = parts[parts.length - 1] || '';
+        }
+    }
+
+    if (firstName && lastName) {
+        return `${firstName} ${lastName[0].toUpperCase()}.`;
+    }
+    if (firstName) {
+        return firstName;
+    }
+
+    return fallback;
+}
+
 export function getConversationTitle(conversation: ConversationResource): string {
     if (conversation.attributes.kind === 'group') {
         return (
@@ -40,13 +79,7 @@ export function getConversationTitle(conversation: ConversationResource): string
         );
     }
 
-    return (
-        readTextWithAttributes(conversation.attributes.counterpart, [
-            'name',
-            'first-name',
-            'email',
-        ]) || 'Direktnachricht'
-    );
+    return getDirectConversationTitle(conversation.attributes.counterpart, 'Direktnachricht');
 }
 
 export function getConversationSubtitle(conversation: ConversationResource): string {
